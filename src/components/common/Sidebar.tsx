@@ -18,9 +18,11 @@ import {
   Flame,
   LayoutTemplate,
   Server,
+  Eye,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { useAuctionStore } from '../../store/auction.store';
+import { api } from '../../services/api';
 
 interface SidebarProps {
   currentTab: string;
@@ -52,6 +54,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { user, logout, isAuthenticated } = useAuthStore();
   const { state, isConnected, soundMuted, toggleSound } = useAuctionStore();
+
+  // If players list is not yet loaded in auction store, fetch immediately so menu count matches
+  React.useEffect(() => {
+    if (!state?.players || state.players.length === 0) {
+      api
+        .getPlayers()
+        .then((players) => {
+          if (Array.isArray(players) && players.length > 0) {
+            useAuctionStore.getState().setPlayers(players);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [state?.players]);
 
   const auctionStatus = state?.auction?.status || 'IDLE';
   const playersCount = state?.players?.length || 0;
@@ -122,6 +138,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </button>
 
+        {/* Public #WatchList Link */}
+        <button
+          onClick={() => handleNavClick('watchlist')}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+            currentTab === 'watchlist'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+              : 'text-amber-400 hover:bg-amber-500/10'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <Eye className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>Live #WatchList</span>
+          </div>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
+            Live Sync
+          </span>
+        </button>
+
         <div className="pt-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-slate-500 px-3">
           {isAuthenticated ? 'Tournament Arena' : 'Portal Access'}
         </div>
@@ -141,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>Official Sign In</span>
             </button>
             <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-[11px] text-slate-400">
-              🔒 Sign in as Admin or Franchise Owner to access live bidding, team squads, and management.
+              🔒 Sign in as Admin or Team Owner to access live bidding, team squads, and management.
             </div>
           </div>
         ) : (
@@ -162,6 +196,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {auctionStatus === 'ACTIVE' && (
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               )}
+            </button>
+
+            <button
+              onClick={() => handleNavClick('watchlist')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                currentTab === 'watchlist'
+                  ? 'bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Eye className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>#WatchList</span>
+              </div>
             </button>
 
             <button
@@ -191,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2.5">
                 <Shield className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>Franchises</span>
+                <span>Teams</span>
               </div>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
                 {teamsCount}
@@ -253,7 +301,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     <div className="flex items-center gap-2.5">
                       <Key className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>Franchise Logins</span>
+                      <span>Team Logins</span>
                     </div>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono">
                       Table

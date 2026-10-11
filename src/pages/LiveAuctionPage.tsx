@@ -37,7 +37,7 @@ export const LiveAuctionPage: React.FC = () => {
           <LiveBiddingArea />
         </div>
 
-        {/* Right: Franchises Status Standings (3 Cols on desktop) */}
+        {/* Right: Teams Status Standings (3 Cols on desktop) */}
         <div className="lg:col-span-3 xl:col-span-3 flex flex-col">
           <TeamStatusPanel />
         </div>

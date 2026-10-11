@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Clock, Check, X, Shield, KeyRound, AlertCircle, Coins, Users, Star } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuctionStore } from '../../store/auction.store';
@@ -19,6 +19,17 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, 
   const [defaultPurse, setDefaultPurse] = useState<number>(auction?.defaultPurse || 15000);
   const [defaultSquadLimit, setDefaultSquadLimit] = useState<number>(auction?.defaultSquadLimit || 12);
   const [iconPlayerPrice, setIconPlayerPrice] = useState<number>(auction?.iconPlayerPrice || 2500);
+
+  useEffect(() => {
+    if (isOpen && auction) {
+      setAutoSell(auction.autoSell !== undefined ? auction.autoSell : true);
+      setTimerEnabled(auction.timerEnabled !== undefined ? auction.timerEnabled : true);
+      setDefaultTimerSec(auction.defaultTimerSec || 10);
+      setDefaultPurse(auction.defaultPurse || 15000);
+      setDefaultSquadLimit(auction.defaultSquadLimit || 12);
+      setIconPlayerPrice(auction.iconPlayerPrice || 2500);
+    }
+  }, [isOpen, auction?.id, auction?.timerEnabled, auction?.autoSell, auction?.defaultTimerSec]);
 
   // Password reset state
   const [showPasswordSection, setShowPasswordSection] = useState(false);

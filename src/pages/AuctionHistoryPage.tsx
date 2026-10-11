@@ -90,7 +90,7 @@ export const AuctionHistoryPage: React.FC = () => {
                       <th className="py-3 px-3">Role</th>
                       <th className="py-3 px-3">Base Price</th>
                       <th className="py-3 px-3">Final Sale Price</th>
-                      <th className="py-3 px-3">Winning Franchise</th>
+                      <th className="py-3 px-3">Winning Team</th>
                       <th className="py-3 px-3">Total Bids</th>
                       <th className="py-3 px-3">Sold Timestamp</th>
                     </tr>
@@ -210,7 +210,7 @@ export const AuctionHistoryPage: React.FC = () => {
                   <tr>
                     <th className="py-3 px-3">#</th>
                     <th className="py-3 px-3">Player</th>
-                    <th className="py-3 px-3">Franchise</th>
+                    <th className="py-3 px-3">Team</th>
                     <th className="py-3 px-3">Bid Amount</th>
                     <th className="py-3 px-3">Timestamp</th>
                   </tr>

@@ -137,7 +137,7 @@ class ApiService {
       });
       return await this.handleResponse<any[]>(res);
     } catch (err) {
-      console.warn('Backend /teams unreachable. Serving fallback franchise pool.');
+      console.warn('Backend /teams unreachable. Serving fallback team pool.');
       return INITIAL_TEAMS;
     }
   }
@@ -224,10 +224,11 @@ class ApiService {
     return this.handleResponse<any>(res);
   }
 
-  async sellPlayer() {
+  async sellPlayer(teamId?: string, price?: number) {
     const res = await fetch(`${getApiBaseUrl()}/auction/sell`, {
       method: 'POST',
       headers: this.getHeaders(),
+      body: JSON.stringify({ teamId, price }),
     });
     return this.handleResponse<any>(res);
   }
@@ -357,21 +358,29 @@ class ApiService {
     return this.handleResponse<any>(res);
   }
 
-  // Franchise Credentials (Admin only)
-  async getFranchiseCredentials() {
+  // Team Credentials (Admin only)
+  async getTeamCredentials() {
     const res = await fetch(`${getApiBaseUrl()}/teams/admin/credentials`, {
       headers: this.getHeaders(),
     });
     return this.handleResponse<any[]>(res);
   }
 
-  async updateFranchiseCredentials(teamId: string, data: { loginUsername?: string; loginPassword?: string }) {
+  async getFranchiseCredentials() {
+    return this.getTeamCredentials();
+  }
+
+  async updateTeamCredentials(teamId: string, data: { loginUsername?: string; loginPassword?: string }) {
     const res = await fetch(`${getApiBaseUrl()}/teams/${teamId}/credentials`, {
       method: 'PUT',
       headers: this.getHeaders(),
       body: JSON.stringify(data),
     });
     return this.handleResponse<any>(res);
+  }
+
+  async updateFranchiseCredentials(teamId: string, data: { loginUsername?: string; loginPassword?: string }) {
+    return this.updateTeamCredentials(teamId, data);
   }
 
   // Reset / Clear All Tournament Data

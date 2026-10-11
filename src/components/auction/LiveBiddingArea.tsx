@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Timer, ArrowUpRight, ShieldAlert, Sparkles, Check, AlertCircle } from 'lucide-react';
+import { Timer, ArrowUpRight, ShieldAlert, Sparkles, Check, AlertCircle, Gavel, Lock } from 'lucide-react';
 import { useAuctionStore } from '../../store/auction.store';
 import { useAuthStore } from '../../store/auth.store';
 import { formatRupees } from '../../utils/currency';
+import { ManualSellModal } from '../admin/ManualSellModal';
 
 export const LiveBiddingArea: React.FC = () => {
   const {
@@ -18,6 +19,7 @@ export const LiveBiddingArea: React.FC = () => {
   const { user } = useAuthStore();
   const [customBidInput, setCustomBidInput] = useState('');
   const [biddingError, setBiddingError] = useState<string | null>(null);
+  const [isManualSellOpen, setIsManualSellOpen] = useState(false);
 
   const auction = state?.auction;
   const currentBid = state?.currentBid || 0;
@@ -96,7 +98,7 @@ export const LiveBiddingArea: React.FC = () => {
               CURRENT BID AMOUNT
             </span>
             <div className="text-[11px] text-slate-500 mt-0.5">
-              Live franchise bidding in progress
+              Live team bidding in progress
             </div>
           </div>
 
@@ -191,14 +193,25 @@ export const LiveBiddingArea: React.FC = () => {
       <div className="bg-[#161d2e] p-5 rounded-2xl border border-slate-800">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            PLACE FRANCHISE BID
+            PLACE TEAM BID
           </span>
 
-          {userTeam && (
+          {isAdmin ? (
+            <button
+              type="button"
+              disabled={!isAuctionActive || !activePlayer}
+              onClick={() => setIsManualSellOpen(true)}
+              className="py-1 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-bold flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Manual Sell to Team"
+            >
+              <Gavel className="w-3.5 h-3.5 text-amber-400" />
+              <span>Manual Sell</span>
+            </button>
+          ) : userTeam ? (
             <span className="text-xs font-mono font-semibold text-amber-400">
               Remaining: {formatRupees(userTeam.remainingPurse)}
             </span>
-          )}
+          ) : null}
         </div>
 
         {/* If Spectator (Not Logged in as Team or Admin) */}
@@ -208,7 +221,7 @@ export const LiveBiddingArea: React.FC = () => {
               You are currently viewing in <span className="text-amber-400 font-bold">Spectator Mode</span>.
             </p>
             <p className="text-[11px] text-slate-500 mt-1">
-              Select a Team account from the "Switch Demo Role" dropdown at top to test live franchise bidding.
+              Select a Team account from the "Switch Demo Role" dropdown at top to test live team bidding.
             </p>
           </div>
         )}
@@ -286,7 +299,59 @@ export const LiveBiddingArea: React.FC = () => {
             </form>
           </div>
         )}
+
+        {/* MANUAL SELL OPTION - Placed below PLACE TEAM BID */}
+        {isAdmin && (
+          <div className="mt-4 pt-4 border-t border-slate-800/80">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Gavel className="w-3.5 h-3.5" />
+                MANUAL SELL OPTION
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">
+                Admin Exclusive Control
+              </span>
+            </div>
+
+            <button
+              type="button"
+              disabled={!isAuctionActive || !activePlayer}
+              onClick={() => setIsManualSellOpen(true)}
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm transition-all transform active:scale-95 shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed group"
+            >
+              <Gavel className="w-4 h-4 text-slate-950 group-hover:scale-110 transition-transform" />
+              <span>
+                {highestBidTeam
+                  ? `Manual Sell to ${highestBidTeam.name} (${formatRupees(currentBid)})`
+                  : activePlayer
+                  ? `Manual Sell ${activePlayer.name} to Any Team`
+                  : 'Manual Sell Player to Team'}
+              </span>
+            </button>
+            <p className="text-[10px] text-slate-500 text-center mt-1.5">
+              Admin can bypass the countdown timer and sell this player to any selected team for a custom price.
+            </p>
+          </div>
+        )}
+
+        {!isAdmin && (
+          <div className="mt-3 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-slate-600" />
+              <span>Manual Sell Option (Admin Only)</span>
+            </span>
+            <span className="text-[10px] text-amber-500/70 font-mono">
+              Switch role to Admin
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* Manual Sell to Team Modal */}
+      <ManualSellModal
+        isOpen={isManualSellOpen}
+        onClose={() => setIsManualSellOpen(false)}
+      />
     </div>
   );
 };

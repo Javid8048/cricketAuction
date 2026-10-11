@@ -5,9 +5,10 @@ import { Flame, Lock, User, ArrowRight, UserPlus, Eye, EyeOff, AlertCircle } fro
 interface LoginPageProps {
   onSuccess: () => void;
   onOpenRegister?: () => void;
+  onOpenWatchList?: () => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onOpenRegister }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onOpenRegister, onOpenWatchList }) => {
   const { login, isLoading, error } = useAuthStore();
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +53,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onOpenRegister 
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-white font-display">OFFICIAL SIGN IN</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Tournament Commissioner Desk & Franchise Portals
+            Tournament User Desk & Team Portals
           </p>
         </div>
 
@@ -133,9 +134,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onOpenRegister 
           </button>
         </form>
 
+        {/* Live Spectator #WatchList Link */}
+        {onOpenWatchList && (
+          <div className="mt-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 text-xs text-amber-300">
+              <Eye className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Spectating or following the live auction?</span>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenWatchList}
+              className="w-full sm:w-auto px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Live #WatchList</span>
+            </button>
+          </div>
+        )}
+
         {/* Public Player Registration Link */}
         {onOpenRegister && (
-          <div className="mt-5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+          <div className="mt-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 text-xs text-emerald-300">
               <UserPlus className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>Are you a Cricketer entering the draft?</span>
@@ -153,7 +172,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onOpenRegister 
         {/* Security / Help Note */}
         <div className="mt-5 pt-4 border-t border-slate-800 text-center">
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            Authorized tournament personnel only. Contact the tournament commissioner for franchise portal credentials.
+            Authorized tournament personnel only. Contact the tournament user for team portal credentials.
           </p>
         </div>
       </div>

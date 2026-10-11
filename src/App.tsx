@@ -11,6 +11,7 @@ import { TeamsDatabasePage } from './pages/TeamsDatabasePage';
 import { AuctionHistoryPage } from './pages/AuctionHistoryPage';
 import { LoginPage } from './pages/LoginPage';
 import { PlayerRegisterPage } from './components/player/PlayerRegisterPage';
+import { WatchListPage } from './pages/WatchListPage';
 import { AdminSettingsModal } from './components/admin/AdminSettingsModal';
 import { IconPlayerModal } from './components/admin/IconPlayerModal';
 import { TeamFormModal } from './components/admin/TeamFormModal';
@@ -21,8 +22,10 @@ import { useAuthStore } from './store/auth.store';
 
 export function App() {
   const getInitialTab = () => {
-    if (typeof window !== 'undefined' && window.location.hash === '#register') {
-      return 'register';
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.toLowerCase();
+      if (hash === '#register') return 'register';
+      if (hash === '#watchlist') return 'watchlist';
     }
     return 'arena';
   };
@@ -55,8 +58,11 @@ export function App() {
     initSocketListeners();
 
     const handleHashChange = () => {
-      if (window.location.hash === '#register') {
+      const hash = window.location.hash.toLowerCase();
+      if (hash === '#register') {
         setCurrentTab('register');
+      } else if (hash === '#watchlist') {
+        setCurrentTab('watchlist');
       }
     };
 
@@ -76,14 +82,15 @@ export function App() {
     setCurrentTab(tab);
     if (tab === 'register') {
       window.location.hash = 'register';
-    } else if (window.location.hash === '#register') {
+    } else if (tab === 'watchlist') {
+      window.location.hash = 'WatchList';
+    } else if (window.location.hash === '#register' || window.location.hash.toLowerCase() === '#watchlist') {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
   };
 
   // Determine what screen to display:
-  // When unauthenticated, user only sees registration form or login screen.
-  // All other auction screens require login.
+  // When unauthenticated, users can see registration form, #WatchList live spectator feed, or login screen.
   const renderMainContent = () => {
     if (!isAuthenticated) {
       if (currentTab === 'register') {
@@ -94,10 +101,14 @@ export function App() {
           />
         );
       }
+      if (currentTab === 'watchlist') {
+        return <WatchListPage onOpenLogin={() => handleTabChange('login')} />;
+      }
       return (
         <LoginPage
           onSuccess={() => handleTabChange('arena')}
           onOpenRegister={() => handleTabChange('register')}
+          onOpenWatchList={() => handleTabChange('watchlist')}
         />
       );
     }
@@ -105,6 +116,8 @@ export function App() {
     switch (currentTab) {
       case 'arena':
         return <LiveAuctionPage />;
+      case 'watchlist':
+        return <WatchListPage onOpenLogin={() => handleTabChange('login')} />;
       case 'players':
         return <PlayersDatabasePage />;
       case 'teams':
@@ -127,6 +140,7 @@ export function App() {
           <LoginPage
             onSuccess={() => handleTabChange('arena')}
             onOpenRegister={() => handleTabChange('register')}
+            onOpenWatchList={() => handleTabChange('watchlist')}
           />
         );
       default:

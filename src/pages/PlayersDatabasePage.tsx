@@ -1,11 +1,40 @@
-import React, { useEffect, useState } from 'react';
-import { Search, Filter, Plus, Globe, Award, Info, Trash2, Edit, Star, MapPin, Users } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  Search,
+  Filter,
+  Plus,
+  Globe,
+  Award,
+  Info,
+  Trash2,
+  Edit,
+  Edit2,
+  Star,
+  MapPin,
+  Users,
+  User,
+  Phone,
+  Calendar,
+  Camera,
+  Image as ImageIcon,
+  FolderOpen,
+  FileCheck,
+  RotateCcw,
+  AlertCircle,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Shield,
+} from 'lucide-react';
 import { api } from '../services/api';
-import { Player } from '../types';
+import { Player, Team } from '../types';
 import { formatRupees } from '../utils/currency';
+import { compressImageFile, formatBytes, CompressionResult } from '../utils/imageCompressor';
 import { PlayerProfileModal } from '../components/player/PlayerProfileModal';
+import { PlayerEditModal } from '../components/player/PlayerEditModal';
 import { Modal } from '../components/common/Modal';
 import { useAuthStore } from '../store/auth.store';
+import { useAuctionStore } from '../store/auction.store';
 
 export const PlayersDatabasePage: React.FC = () => {
   const { user } = useAuthStore();
@@ -17,33 +46,60 @@ export const PlayersDatabasePage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
+  // Teams list for LOV selection
+  const [teams, setTeams] = useState<Team[]>([]);
+
+  // Edit Player Modal for Admin
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [playerToEdit, setPlayerToEdit] = useState<Player | null>(null);
+
   // New Player Modal for Admin
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newPlayer, setNewPlayer] = useState({
+  const initialNewPlayer = {
     name: '',
     country: 'India',
-    age: 24,
-    role: 'Batter',
+    dob: '',
+    age: '22',
+    place: '',
+    phone: '',
+    role: 'All-Rounder',
     battingStyle: 'Right-hand bat',
     bowlingStyle: 'Right-arm medium',
     basePrice: 100,
-    category: 'Local',
-    matches: 10,
-    runs: 250,
-    battingAvg: 25,
-    strikeRate: 125,
+    category: 'Local Talent',
+    profileImage: '',
+    teamId: '',
+    matches: 0,
+    runs: 0,
+    battingAvg: 0,
+    strikeRate: 0,
     wickets: 0,
     economy: 0,
-    highestScore: 54,
-  });
+    highestScore: 0,
+  };
+  const [newPlayer, setNewPlayer] = useState(initialNewPlayer);
+  const [compressionInfo, setCompressionInfo] = useState<CompressionResult | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [isSubmittingPlayer, setIsSubmittingPlayer] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [showCareerStats, setShowCareerStats] = useState(false);
+
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isAdmin = user?.role === 'ADMIN';
 
   const loadPlayers = () => {
     setLoading(true);
-    api
-      .getPlayers()
-      .then(setPlayers)
+    Promise.all([api.getPlayers(), api.getTeams()])
+      .then(([playersData, teamsData]) => {
+        setPlayers(playersData || []);
+        setTeams(teamsData || []);
+        if (Array.isArray(playersData)) {
+          useAuctionStore.getState().setPlayers(playersData);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
@@ -51,6 +107,61 @@ export const PlayersDatabasePage: React.FC = () => {
   useEffect(() => {
     loadPlayers();
   }, []);
+
+  const estimatedSNo = players.length > 0 ? Math.max(...players.map((p) => p.sNo || 0)) + 1 : 1;
+
+  const handleDobChange = (dobValue: string) => {
+    let calculatedAge = '';
+    if (dobValue) {
+      const birthDate = new Date(dobValue);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      if (age > 0 && age < 80) {
+        calculatedAge = String(age);
+      }
+    }
+    setNewPlayer((prev) => ({
+      ...prev,
+      dob: dobValue,
+      age: calculatedAge || prev.age,
+    }));
+  };
+
+  const processImageFile = async (file: File) => {
+    setIsCompressing(true);
+    setCreateError(null);
+    try {
+      const result = await compressImageFile(file, {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.75,
+        format: 'image/jpeg',
+      });
+      setCompressionInfo(result);
+      setNewPlayer((prev) => ({ ...prev, profileImage: result.dataUrl }));
+    } catch (err: any) {
+      setCreateError(err.message || 'Failed to process and compress photo.');
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processImageFile(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleRemoveImage = () => {
+    setCompressionInfo(null);
+    setNewPlayer((prev) => ({ ...prev, profileImage: '' }));
+  };
 
   const filteredPlayers = players.filter((p) => {
     if (search.trim()) {
@@ -69,12 +180,35 @@ export const PlayersDatabasePage: React.FC = () => {
 
   const handleCreatePlayer = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newPlayer.name.trim()) {
+      setCreateError('Player Full Name is required.');
+      return;
+    }
+    setIsSubmittingPlayer(true);
+    setCreateError(null);
     try {
-      await api.createPlayer(newPlayer);
+      const payload = {
+        ...newPlayer,
+        name: newPlayer.name.trim(),
+        age: Number(newPlayer.age) || 22,
+        basePrice: Number(newPlayer.basePrice) || 100,
+        place: newPlayer.place.trim(),
+        phone: newPlayer.phone.trim(),
+        teamId: newPlayer.teamId || undefined,
+        isOverseas: newPlayer.country ? newPlayer.country.toLowerCase() !== 'india' : false,
+        profileImage:
+          newPlayer.profileImage ||
+          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+      };
+      await api.createPlayer(payload);
       setIsCreateModalOpen(false);
+      setNewPlayer(initialNewPlayer);
+      setCompressionInfo(null);
       loadPlayers();
     } catch (err: any) {
-      alert(err.message);
+      setCreateError(err.message || 'Failed to create player.');
+    } finally {
+      setIsSubmittingPlayer(false);
     }
   };
 
@@ -101,7 +235,7 @@ export const PlayersDatabasePage: React.FC = () => {
             PLAYER REGISTRY ({players.length})
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Complete registered cricketer pool available for the auction franchise draft.
+            Complete registered cricketer pool available for the auction team draft.
           </p>
         </div>
 
@@ -181,7 +315,7 @@ export const PlayersDatabasePage: React.FC = () => {
           </div>
           <h3 className="text-lg font-bold text-white mb-2">No Cricketers Registered Yet</h3>
           <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-            Players can register themselves directly using the public registration link, or the Commissioner can add players manually.
+            Players can register themselves directly using the public registration link, or the User can add players manually.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
@@ -247,7 +381,7 @@ export const PlayersDatabasePage: React.FC = () => {
                       (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`;
                     }}
                   />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h3 className="font-extrabold text-white text-sm font-display truncate">
                       {p.name}
                     </h3>
@@ -256,8 +390,30 @@ export const PlayersDatabasePage: React.FC = () => {
                       <span>•</span>
                       <span className="text-slate-300 font-medium">{p.role}</span>
                     </div>
-                    <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+                    <div className="text-[10px] font-mono text-slate-500 mt-0.5 truncate">
                       Age {p.age} {p.place && `• ${p.place}`}
+                    </div>
+                    {/* Team Name badge / Not Selected */}
+                    <div className="mt-1.5">
+                      {p.teamPlayer?.team ? (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"
+                          style={{
+                            borderColor: `${p.teamPlayer.team.primaryColor}55`,
+                            backgroundColor: `${p.teamPlayer.team.primaryColor}20`,
+                            color: p.teamPlayer.team.primaryColor,
+                          }}
+                          title={p.teamPlayer.team.name}
+                        >
+                          <Shield className="w-2.5 h-2.5 shrink-0" />
+                          <span className="truncate">Team: {p.teamPlayer.team.name}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 font-medium">
+                          <Shield className="w-2.5 h-2.5 text-slate-600" />
+                          <span>Team: Not Selected</span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -290,6 +446,19 @@ export const PlayersDatabasePage: React.FC = () => {
 
                 {isAdmin && (
                   <button
+                    onClick={() => {
+                      setPlayerToEdit(p);
+                      setIsEditModalOpen(true);
+                    }}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+                    title="Edit player dossier & team"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                )}
+
+                {isAdmin && (
+                  <button
                     onClick={() => handleDeletePlayer(p.id)}
                     className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
                     title="Delete player"
@@ -309,59 +478,275 @@ export const PlayersDatabasePage: React.FC = () => {
         onClose={() => setSelectedPlayerId(null)}
       />
 
-      {/* Admin Add Player Modal */}
+      {/* Edit Player Modal for Admin */}
+      <PlayerEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setPlayerToEdit(null);
+        }}
+        player={playerToEdit}
+        teams={teams}
+        onSuccess={loadPlayers}
+      />
+
+      {/* Admin Add Player Modal (Matches Public Player Registration) */}
       <Modal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setNewPlayer(initialNewPlayer);
+          setCompressionInfo(null);
+          setCreateError(null);
+        }}
         title="Register New Cricketer"
-        maxWidth="max-w-xl"
+        maxWidth="max-w-2xl"
       >
         <form onSubmit={handleCreatePlayer} className="space-y-4 text-xs">
-          <div className="grid grid-cols-2 gap-3">
+          {/* Header Subtext with Next S.No Badge */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <p className="text-slate-400 text-[11px]">
+              Add a new player to the registry catalog. Starting Bid: <strong className="text-amber-400">₹100</strong>.
+            </p>
+            <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-mono font-bold border border-amber-500/30 shrink-0">
+              Assigned S.No: #{estimatedSNo}
+            </span>
+          </div>
+
+          {createError && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{createError}</span>
+            </div>
+          )}
+
+          {/* Photo Upload with Mobile Camera, Gallery, and Files Selection + Canvas Compression */}
+          <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-white">
+                Player Photo / Avatar
+              </label>
+              {compressionInfo && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono flex items-center gap-1 border border-emerald-500/30">
+                  <FileCheck className="w-3 h-3 text-emerald-400" />
+                  Optimized: {formatBytes(compressionInfo.compressedSizeBytes)}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {/* Preview Avatar */}
+              <div className="relative w-20 h-20 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden shrink-0 group shadow-inner">
+                {newPlayer.profileImage ? (
+                  <img
+                    src={newPlayer.profileImage}
+                    alt="Profile Preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center p-2">
+                    <Camera className="w-6 h-6 text-slate-500 mx-auto mb-1 group-hover:text-amber-400 transition-colors" />
+                    <span className="text-[9px] text-slate-500 block">No photo</span>
+                  </div>
+                )}
+
+                {isCompressing && (
+                  <div className="absolute inset-0 bg-slate-950/85 flex items-center justify-center text-[10px] text-amber-400 font-mono font-bold">
+                    Optimizing...
+                  </div>
+                )}
+              </div>
+
+              {/* Upload Actions */}
+              <div className="flex-1 w-full space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 text-slate-200 hover:text-white flex flex-col items-center justify-center gap-1 transition-all active:scale-95 text-[10px] font-semibold"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Camera</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-slate-200 hover:text-white flex flex-col items-center justify-center gap-1 transition-all active:scale-95 text-[10px] font-semibold"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Gallery</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 text-slate-200 hover:text-white flex flex-col items-center justify-center gap-1 transition-all active:scale-95 text-[10px] font-semibold"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Files</span>
+                  </button>
+                </div>
+
+                {/* Hidden Inputs */}
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+
+                {newPlayer.profileImage && (
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] text-slate-500">
+                      {compressionInfo
+                        ? `${formatBytes(compressionInfo.originalSizeBytes)} ➔ ${formatBytes(
+                            compressionInfo.compressedSizeBytes
+                          )}`
+                        : 'Custom photo attached'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="text-[10px] text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Full Name & Country */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">Full Name</label>
-              <input
-                required
-                type="text"
-                value={newPlayer.name}
-                onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
-                placeholder="e.g. Tarun Gill"
-              />
+              <label className="block text-slate-400 font-semibold mb-1">
+                Full Name <span className="text-rose-400">*</span>
+              </label>
+              <div className="relative">
+                <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                <input
+                  required
+                  type="text"
+                  value={newPlayer.name}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
+                  placeholder="e.g. Mohammed Farooq"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-slate-400 font-semibold mb-1">Country</label>
+              <div className="relative">
+                <Globe className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                <input
+                  required
+                  type="text"
+                  value={newPlayer.country}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, country: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
+                  placeholder="e.g. India"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* DOB & Age */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">Date of Birth</label>
+              <div className="relative">
+                <Calendar className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                <input
+                  type="date"
+                  value={newPlayer.dob}
+                  onChange={(e) => handleDobChange(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">
+                Age (Years) <span className="text-rose-400">*</span>
+              </label>
               <input
+                type="number"
+                min="12"
+                max="65"
                 required
-                type="text"
-                value={newPlayer.country}
-                onChange={(e) => setNewPlayer({ ...newPlayer, country: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
-                placeholder="e.g. India, Australia"
+                value={newPlayer.age}
+                onChange={(e) => setNewPlayer({ ...newPlayer, age: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                placeholder="22"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          {/* Place & Phone */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">Age</label>
-              <input
-                type="number"
-                value={newPlayer.age}
-                onChange={(e) => setNewPlayer({ ...newPlayer, age: Number(e.target.value) })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
-              />
+              <label className="block text-slate-400 font-semibold mb-1">
+                Native Place / City <span className="text-rose-400">*</span>
+              </label>
+              <div className="relative">
+                <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  required
+                  value={newPlayer.place}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, place: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
+                  placeholder="e.g. Chennai, Madurai"
+                />
+              </div>
             </div>
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">
+                Phone / WhatsApp Number
+              </label>
+              <div className="relative">
+                <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                <input
+                  type="tel"
+                  value={newPlayer.phone}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, phone: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
+                  placeholder="e.g. 9876543210"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Role, Category & Base Price */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-slate-400 font-semibold mb-1">Role</label>
               <select
                 value={newPlayer.role}
-                onChange={(e) => setNewPlayer({ ...newPlayer, role: e.target.value as any })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                onChange={(e) => setNewPlayer({ ...newPlayer, role: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-amber-500"
               >
+                <option value="All-Rounder">All-Rounder</option>
                 <option value="Batter">Batter</option>
                 <option value="Bowler">Bowler</option>
-                <option value="All-Rounder">All-Rounder</option>
                 <option value="Wicketkeeper">Wicketkeeper</option>
               </select>
             </div>
@@ -370,51 +755,202 @@ export const PlayersDatabasePage: React.FC = () => {
               <select
                 value={newPlayer.category}
                 onChange={(e) => setNewPlayer({ ...newPlayer, category: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-amber-500"
               >
-                <option value="Marquee">Marquee</option>
+                <option value="Local Talent">Local Talent</option>
+                <option value="Icon Player">Icon Player</option>
                 <option value="Capped">Capped</option>
-                <option value="Uncapped">Uncapped</option>
                 <option value="Emerging">Emerging</option>
+                <option value="General">General</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">Starting Base Price</label>
+              <input
+                type="number"
+                step="50"
+                min="50"
+                value={newPlayer.basePrice}
+                onChange={(e) => setNewPlayer({ ...newPlayer, basePrice: Number(e.target.value) })}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-amber-400 font-mono font-bold focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          </div>
+
+          {/* Base Price Quick Preset Chips */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] text-slate-500 font-semibold">Quick Presets:</span>
+            {[100, 200, 500, 1000, 2500].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setNewPlayer({ ...newPlayer, basePrice: preset })}
+                className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                  newPlayer.basePrice === preset
+                    ? 'bg-amber-500 text-slate-950 font-bold'
+                    : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                {formatRupees(preset)}
+              </button>
+            ))}
+          </div>
+
+          {/* Batting & Bowling Styles */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">Batting Style</label>
+              <select
+                value={newPlayer.battingStyle}
+                onChange={(e) => setNewPlayer({ ...newPlayer, battingStyle: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-amber-500"
+              >
+                <option value="Right-hand bat">Right-hand bat</option>
+                <option value="Left-hand bat">Left-hand bat</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">Bowling Style</label>
+              <select
+                value={newPlayer.bowlingStyle}
+                onChange={(e) => setNewPlayer({ ...newPlayer, bowlingStyle: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-amber-500"
+              >
+                <option value="Right-arm medium">Right-arm medium</option>
+                <option value="Right-arm fast">Right-arm fast</option>
+                <option value="Right-arm spin / off-break">Right-arm spin / off-break</option>
+                <option value="Left-arm medium">Left-arm medium</option>
+                <option value="Left-arm fast">Left-arm fast</option>
+                <option value="Left-arm orthodox spin">Left-arm orthodox spin</option>
+                <option value="None">None / Pure Batter</option>
               </select>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-400 font-semibold mb-1">Base Price (₹)</label>
-              <input
-                type="number"
-                step="1000000"
-                value={newPlayer.basePrice}
-                onChange={(e) => setNewPlayer({ ...newPlayer, basePrice: Number(e.target.value) })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono"
-              />
+          {/* ASSIGNED TEAM LOV (Optional) */}
+          <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+            <label className="block text-xs font-bold text-white flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-amber-400" />
+                <span>Assigned Team (Optional LOV)</span>
+              </span>
+              <span className="text-[10px] text-slate-500 font-normal">
+                Editable by Admin anytime
+              </span>
+            </label>
+            <div className="relative">
+              <select
+                value={newPlayer.teamId}
+                onChange={(e) => setNewPlayer({ ...newPlayer, teamId: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+              >
+                <option value="">Not Selected (Free Agent in Auction Pool)</option>
+                {teams.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.shortName}) — Purse: {formatRupees(t.remainingPurse)}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div>
-              <label className="block text-slate-400 font-semibold mb-1">Batting Style</label>
-              <input
-                type="text"
-                value={newPlayer.battingStyle}
-                onChange={(e) => setNewPlayer({ ...newPlayer, battingStyle: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
-              />
-            </div>
+            <p className="text-[11px] text-slate-500">
+              {newPlayer.teamId ? (
+                <span className="text-amber-300 font-medium">
+                  Player will be directly drafted into{' '}
+                  <strong>{teams.find((t) => t.id === newPlayer.teamId)?.name}</strong> squad.
+                </span>
+              ) : (
+                <span>Not selected: Player remains unassigned in the upcoming auction pool.</span>
+              )}
+            </p>
           </div>
 
-          <div className="pt-3 flex justify-end gap-2">
+          {/* Optional Career Stats Accordion */}
+          <div className="border border-slate-800 rounded-xl overflow-hidden">
             <button
               type="button"
-              onClick={() => setIsCreateModalOpen(false)}
-              className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 font-medium"
+              onClick={() => setShowCareerStats(!showCareerStats)}
+              className="w-full px-3 py-2 bg-slate-950/60 hover:bg-slate-900 flex items-center justify-between text-[11px] text-slate-400 hover:text-white transition-colors"
+            >
+              <span>Optional Career Statistics</span>
+              {showCareerStats ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+            {showCareerStats && (
+              <div className="p-3 bg-slate-950/40 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-0.5">Matches</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newPlayer.matches}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, matches: Number(e.target.value) })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white text-[11px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-0.5">Runs</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newPlayer.runs}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, runs: Number(e.target.value) })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white text-[11px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-0.5">Highest Score</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newPlayer.highestScore}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, highestScore: Number(e.target.value) })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white text-[11px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-0.5">Wickets</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newPlayer.wickets}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, wickets: Number(e.target.value) })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white text-[11px]"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Form Actions */}
+          <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
+            <button
+              type="button"
+              disabled={isSubmittingPlayer}
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                setNewPlayer(initialNewPlayer);
+                setCompressionInfo(null);
+                setCreateError(null);
+              }}
+              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
+              disabled={isSubmittingPlayer || isCompressing}
+              className="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/20 disabled:opacity-50"
             >
-              Add to Catalog
+              {isSubmittingPlayer ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  <span>Registering...</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>Register Cricketer</span>
+                </>
+              )}
             </button>
           </div>
         </form>

@@ -162,7 +162,7 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
             </div>
             <div>
               <h3 className="text-base font-bold text-white">
-                {teamToEdit ? `Edit Team: ${teamToEdit.name}` : 'Add New Franchise / Team'}
+                {teamToEdit ? `Edit Team: ${teamToEdit.name}` : 'Add New Team'}
               </h3>
               <p className="text-xs text-slate-400">Configure team profile, login credentials, purse, and limits</p>
             </div>
@@ -277,11 +277,11 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
             </div>
           </div>
 
-          {/* Franchise Login Credentials Box */}
+          {/* Team Login Credentials Box */}
           <div className="p-3.5 rounded-xl bg-slate-950/80 border border-amber-500/30 space-y-2.5">
             <div className="flex items-center gap-2 pb-1.5 border-b border-slate-800">
               <Key className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-xs font-bold text-amber-400">Franchise Login Portal Access</span>
+              <span className="text-xs font-bold text-amber-400">Team Login Portal Access</span>
               <span className="text-[10px] text-slate-500 ml-auto">(Admin Viewable & Editable)</span>
             </div>
 
@@ -342,7 +342,7 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
               </div>
             </div>
             <p className="text-[10px] text-slate-500">
-              Set the login username & password for the franchise owner. These will appear in the Admin Credentials table.
+              Set the login username & password for the team owner. These will appear in the Admin Credentials table.
             </p>
           </div>
 
@@ -437,7 +437,7 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
               disabled={isSubmitting}
               className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all shadow-md shadow-amber-500/20 disabled:opacity-50"
             >
-              {isSubmitting ? 'Saving...' : teamToEdit ? 'Save Changes' : 'Create Franchise'}
+              {isSubmitting ? 'Saving...' : teamToEdit ? 'Save Changes' : 'Create Team'}
             </button>
           </div>
         </form>

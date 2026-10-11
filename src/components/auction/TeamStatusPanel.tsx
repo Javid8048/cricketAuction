@@ -14,9 +14,9 @@ export const TeamStatusPanel: React.FC = () => {
       <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
         <div>
           <h3 className="text-sm font-extrabold text-white font-display uppercase tracking-wider">
-            FRANCHISE STANDINGS
+            TEAM STANDINGS
           </h3>
-          <span className="text-[11px] text-slate-400">8 Participating Franchises</span>
+          <span className="text-[11px] text-slate-400">{teams.length} Participating Teams</span>
         </div>
         <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono font-semibold">
           MAX PURSE ₹100 Cr

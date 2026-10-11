@@ -1,15 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, FastForward, CheckCircle2, XCircle, RotateCcw, SkipForward, RefreshCw, Shield, AlertTriangle } from 'lucide-react';
+import {
+  Play,
+  Pause,
+  FastForward,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+  SkipForward,
+  RefreshCw,
+  Shield,
+  Gavel,
+  Clock,
+  Settings,
+} from 'lucide-react';
 import { useAuctionStore } from '../../store/auction.store';
 import { api } from '../../services/api';
 import { Player } from '../../types';
 import { formatRupees } from '../../utils/currency';
+import { ManualSellModal } from './ManualSellModal';
+import { AdminSettingsModal } from './AdminSettingsModal';
 
 export const AdminControlPanel: React.FC = () => {
   const { state, isStandaloneMode, adminActionStandalone } = useAuctionStore();
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [loadingAction, setLoadingAction] = useState(false);
+  const [isManualSellOpen, setIsManualSellOpen] = useState(false);
+  const [isAdminSettingsOpen, setIsAdminSettingsOpen] = useState(false);
 
   const auction = state?.auction;
 
@@ -43,16 +60,61 @@ export const AdminControlPanel: React.FC = () => {
     handleAction('select_player', () => api.selectPlayer(selectedPlayerId), undefined, selectedPlayerId);
   };
 
+  const handleToggleTimer = async () => {
+    const nextEnabled = auction?.timerEnabled === false ? true : false;
+    handleAction(
+      'toggle_timer',
+      () => api.updateAuctionSettings({ timerEnabled: nextEnabled }),
+      undefined,
+      { timerEnabled: nextEnabled }
+    );
+  };
+
   return (
     <div className="bg-[#121724] border border-amber-500/30 rounded-2xl p-6 shadow-2xl backdrop-blur-md">
-      <div className="flex items-center gap-2 pb-4 mb-4 border-b border-slate-800">
-        <Shield className="w-5 h-5 text-amber-400" />
-        <h3 className="text-base font-extrabold text-white font-display uppercase tracking-wider">
-          AUCTIONEER COMMAND DESK
-        </h3>
-        <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-semibold ml-auto">
-          COMMISSIONER ACCESS
-        </span>
+      {/* Header bar with Status Badges and Quick Shortcuts */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-800">
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5 text-amber-400" />
+          <h3 className="text-base font-extrabold text-white font-display uppercase tracking-wider">
+            AUCTIONEER COMMAND DESK
+          </h3>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap ml-auto">
+          {/* Quick Timer ON/OFF Toggle */}
+          <button
+            onClick={handleToggleTimer}
+            disabled={loadingAction}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold border transition-all active:scale-95 ${
+              auction?.timerEnabled !== false
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+            }`}
+            title="Click to toggle Timer ON/OFF (Manual Mode)"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>
+              {auction?.timerEnabled !== false
+                ? `TIMER: ON (${auction?.defaultTimerSec || 10}s)`
+                : 'TIMER: OFF (MANUAL)'}
+            </span>
+          </button>
+
+          {/* Quick Settings Modal trigger */}
+          <button
+            onClick={() => setIsAdminSettingsOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition-colors"
+            title="Tournament & Auction Settings"
+          >
+            <Settings className="w-3.5 h-3.5 text-amber-400" />
+            <span>Settings</span>
+          </button>
+
+          <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-semibold">
+            USER ACCESS
+          </span>
+        </div>
       </div>
 
       {/* Manual Player Selection */}
@@ -109,28 +171,39 @@ export const AdminControlPanel: React.FC = () => {
         {/* START BIDDING TIMER */}
         <button
           onClick={() => handleAction('start', () => api.startBidding())}
-          disabled={loadingAction || !auction?.activePlayerId}
-          className="p-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40"
+          disabled={loadingAction || !auction?.activePlayerId || auction?.status !== 'ACTIVE'}
+          className="p-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Play className="w-5 h-5 text-sky-400" />
           <span>START BID TIMER</span>
         </button>
 
-        {/* CONFIRM SOLD */}
+        {/* MANUAL SELL TO TEAM */}
+        <button
+          onClick={() => setIsManualSellOpen(true)}
+          disabled={loadingAction || !auction?.activePlayerId || auction?.status !== 'ACTIVE'}
+          className="p-3 rounded-xl bg-gradient-to-b from-amber-500/25 to-emerald-600/25 hover:from-amber-500/35 hover:to-emerald-600/35 border border-emerald-400/50 text-emerald-200 text-xs font-bold flex flex-col items-center gap-1.5 transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Directly sell current player to any team for a custom price"
+        >
+          <Gavel className="w-5 h-5 text-emerald-300" />
+          <span>MANUAL SELL TO TEAM</span>
+        </button>
+
+        {/* CONFIRM SOLD (Highest Bidder) */}
         <button
           onClick={() => handleAction('sell', () => api.sellPlayer(), 'Manually confirm player as SOLD to highest bidder?')}
-          disabled={loadingAction || !auction?.activePlayerId}
-          className="p-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-200 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40"
+          disabled={loadingAction || !auction?.activePlayerId || auction?.status !== 'ACTIVE' || !auction?.highestBidTeamId}
+          className="p-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-200 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-          <span>SELL PLAYER</span>
+          <span>SELL TO HIGHEST BIDDER</span>
         </button>
 
         {/* MARK UNSOLD */}
         <button
           onClick={() => handleAction('unsold', () => api.markUnsold(), 'Mark current player as UNSOLD?')}
-          disabled={loadingAction || !auction?.activePlayerId}
-          className="p-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40"
+          disabled={loadingAction || !auction?.activePlayerId || auction?.status !== 'ACTIVE'}
+          className="p-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <XCircle className="w-5 h-5 text-rose-400" />
           <span>MARK UNSOLD</span>
@@ -139,8 +212,8 @@ export const AdminControlPanel: React.FC = () => {
         {/* NEXT PLAYER */}
         <button
           onClick={() => handleAction('next', () => api.nextPlayer())}
-          disabled={loadingAction}
-          className="p-3 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-200 text-xs font-bold flex flex-col items-center gap-1.5 transition-all"
+          disabled={loadingAction || auction?.status !== 'ACTIVE'}
+          className="p-3 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-200 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <FastForward className="w-5 h-5 text-purple-400" />
           <span>NEXT PLAYER</span>
@@ -149,8 +222,8 @@ export const AdminControlPanel: React.FC = () => {
         {/* SKIP PLAYER */}
         <button
           onClick={() => handleAction('next', () => api.skipPlayer(), 'Skip this player for now?')}
-          disabled={loadingAction || !auction?.activePlayerId}
-          className="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40"
+          disabled={loadingAction || !auction?.activePlayerId || auction?.status !== 'ACTIVE'}
+          className="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <SkipForward className="w-5 h-5 text-slate-400" />
           <span>SKIP PLAYER</span>
@@ -182,6 +255,18 @@ export const AdminControlPanel: React.FC = () => {
           <span>RESET AUCTION</span>
         </button>
       </div>
+
+      {/* Manual Sell to Team Modal */}
+      <ManualSellModal
+        isOpen={isManualSellOpen}
+        onClose={() => setIsManualSellOpen(false)}
+      />
+
+      {/* Admin Settings Modal */}
+      <AdminSettingsModal
+        isOpen={isAdminSettingsOpen}
+        onClose={() => setIsAdminSettingsOpen(false)}
+      />
     </div>
   );
 };

@@ -89,7 +89,7 @@ export const AdminDashboardPage: React.FC = () => {
             AUCTION INTELLIGENCE DASHBOARD
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Real-time macroeconomic analysis, franchise spending patterns, and player valuation metrics.
+            Real-time macroeconomic analysis, team spending patterns, and player valuation metrics.
           </p>
         </div>
 
@@ -151,7 +151,7 @@ export const AdminDashboardPage: React.FC = () => {
         {/* Spending by Team */}
         <div className="bg-[#121724] border border-slate-800 p-6 rounded-2xl">
           <h3 className="text-sm font-extrabold text-white font-display uppercase tracking-wider mb-4">
-            Total Expenditure by Franchise (₹ Rupees)
+            Total Expenditure by Team (₹ Rupees)
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -268,7 +268,7 @@ export const AdminDashboardPage: React.FC = () => {
                   <th className="py-3 px-4">Country</th>
                   <th className="py-3 px-4">Base Price</th>
                   <th className="py-3 px-4">Final Price</th>
-                  <th className="py-3 px-4">Acquiring Franchise</th>
+                  <th className="py-3 px-4">Acquiring Team</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-medium">
