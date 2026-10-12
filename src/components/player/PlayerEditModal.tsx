@@ -85,7 +85,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         basePrice: player.basePrice || 100,
         category: player.category || 'Local Talent',
         profileImage: player.profileImage || '',
-        teamId: player.teamPlayer?.team?.id || '',
+        teamId: player.belongingTeamId || player.belongingTeam?.id || player.teamPlayer?.team?.id || '',
         matches: player.matches || 0,
         runs: player.runs || 0,
         battingAvg: player.battingAvg || 0,
@@ -523,10 +523,10 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
               onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
             >
-              <option value="">Not Selected (Free Agent in Auction Pool)</option>
+              <option value="">Not Selected (Open Auction Pool)</option>
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name} ({t.shortName}) — Purse: {formatRupees(t.remainingPurse)}
+                  {t.name} ({t.shortName})
                 </option>
               ))}
             </select>
@@ -534,11 +534,11 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
           <p className="text-[11px] text-slate-500">
             {formData.teamId ? (
               <span className="text-amber-300 font-medium">
-                Player will be assigned to{' '}
-                <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong> squad.
+                Player belongs to{' '}
+                <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong>. Player participates in the auction and can be bid on or assigned by admin.
               </span>
             ) : (
-              <span>Not selected: Player remains unassigned in the upcoming auction pool.</span>
+              <span>Not selected: Player belongs to no specific team (Open Auction Pool).</span>
             )}
           </p>
         </div>

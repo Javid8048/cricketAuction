@@ -21,7 +21,7 @@ import { ManualSellModal } from './ManualSellModal';
 import { AdminSettingsModal } from './AdminSettingsModal';
 
 export const AdminControlPanel: React.FC = () => {
-  const { state, isStandaloneMode, adminActionStandalone } = useAuctionStore();
+  const { state, isStandaloneMode, adminActionStandalone, showToast } = useAuctionStore();
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [loadingAction, setLoadingAction] = useState(false);
@@ -44,12 +44,9 @@ export const AdminControlPanel: React.FC = () => {
         await apiFn();
       }
     } catch (err: any) {
-      console.warn(`API call failed for ${actionKey}, falling back to standalone simulation:`, err);
-      try {
-        await adminActionStandalone(actionKey, payload);
-      } catch (fallbackErr: any) {
-        alert(fallbackErr.message || err.message);
-      }
+      console.error(`API call failed for ${actionKey}:`, err);
+      const errorMsg = err?.response?.data?.error || err?.message || 'Server action failed';
+      showToast(errorMsg, 'error');
     } finally {
       setLoadingAction(false);
     }

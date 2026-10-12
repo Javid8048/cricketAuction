@@ -125,6 +125,28 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
                 <span className="text-slate-300 font-medium">{player.bowlingStyle}</span>
               </div>
             </div>
+
+            {/* Belonging Team Badge */}
+            <div className="mt-2.5">
+              {player.belongingTeam ? (
+                <span
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border shadow-sm"
+                  style={{
+                    borderColor: `${player.belongingTeam.primaryColor}55`,
+                    backgroundColor: `${player.belongingTeam.primaryColor}20`,
+                    color: player.belongingTeam.primaryColor,
+                  }}
+                >
+                  <Shield className="w-3.5 h-3.5 shrink-0" />
+                  <span>Home Team: {player.belongingTeam.name}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800">
+                  <Shield className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                  <span>Team: Not Selected</span>
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

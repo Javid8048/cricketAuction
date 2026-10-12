@@ -27,7 +27,8 @@ export const ManualSellModal: React.FC<ManualSellModalProps> = ({ isOpen, onClos
       const defaultPrice = currentBid > 0 ? currentBid : activePlayer.basePrice;
       setSalePrice(defaultPrice);
       setCustomPriceInput(String(defaultPrice));
-      setSelectedTeamId(state?.highestBidTeam?.id || '');
+      const initialTeamId = state?.highestBidTeam?.id || activePlayer.belongingTeamId || activePlayer.belongingTeam?.id || '';
+      setSelectedTeamId(initialTeamId);
       setErrorMsg(null);
     }
   }, [isOpen, activePlayer?.id, currentBid, state?.highestBidTeam?.id]);
@@ -161,6 +162,22 @@ export const ManualSellModal: React.FC<ManualSellModalProps> = ({ isOpen, onClos
                   <span>•</span>
                   <span>Base: {formatRupees(activePlayer.basePrice)}</span>
                 </div>
+                {activePlayer.belongingTeam && (
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-[10px] text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      Home Team: {activePlayer.belongingTeam.name}
+                    </span>
+                    {selectedTeamId !== activePlayer.belongingTeam.id && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTeamId(activePlayer.belongingTeam!.id)}
+                        className="text-[10px] text-cyan-400 hover:underline"
+                      >
+                        (Select Home Team)
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               {currentBid > 0 && (
                 <div className="text-right shrink-0">

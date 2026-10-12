@@ -305,15 +305,21 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
                 </span>
               </div>
               <div className="flex justify-between text-slate-400">
-                <span>Assigned Team:</span>
+                <span>Belongs to Team:</span>
                 <span className="font-semibold text-white">
-                  {registeredPlayer.teamPlayer?.team?.name ? (
+                  {registeredPlayer.belongingTeam?.name ? (
                     <span className="text-amber-300 font-bold">
-                      {registeredPlayer.teamPlayer.team.name}
+                      {registeredPlayer.belongingTeam.name}
                     </span>
                   ) : (
-                    <span className="text-slate-400">Not Selected (Auction Pool)</span>
+                    <span className="text-slate-400">Not Selected</span>
                   )}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Auction Status:</span>
+                <span className="text-emerald-400 font-semibold">
+                  In Auction Pool (Ready for Bidding)
                 </span>
               </div>
             </div>
@@ -722,10 +728,10 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
                     onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
                   >
-                    <option value="">Not Selected (Free Agent in Auction Pool)</option>
+                    <option value="">Not Selected (Independent Player in Auction Pool)</option>
                     {teams.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.name} ({t.shortName}) — Purse: {formatRupees(t.remainingPurse)}
+                        {t.name} ({t.shortName})
                       </option>
                     ))}
                   </select>
@@ -733,12 +739,12 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
                 <p className="text-[11px] text-slate-500">
                   {formData.teamId ? (
                     <span className="text-amber-300 font-medium">
-                      You will be registered directly under{' '}
-                      <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong>.
+                      You belong to{' '}
+                      <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong>. You will participate in the auction match and can be bid on by any team or assigned by Admin.
                     </span>
                   ) : (
                     <span>
-                      If you already belong to a registered team, select it above. If not selected, you will enter the auction pool as an unassigned cricketer.
+                      If you belong to a team, select it above. If not selected, it will show as Not Selected and can be edited later by the tournament admin.
                     </span>
                   )}
                 </p>

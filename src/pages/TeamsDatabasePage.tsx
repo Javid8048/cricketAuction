@@ -21,6 +21,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
+import { useAuctionStore } from '../store/auction.store';
 import { TeamFormModal } from '../components/admin/TeamFormModal';
 import { IconPlayerModal } from '../components/admin/IconPlayerModal';
 import { FranchiseCredentialsModal } from '../components/admin/FranchiseCredentialsModal';
@@ -101,6 +102,7 @@ export const TeamsDatabasePage: React.FC = () => {
         setSelectedTeamForDetails(null);
       }
       loadTeams();
+      useAuctionStore.getState().initState();
     } catch (err: any) {
       alert(err.message || 'Failed to delete team.');
     }

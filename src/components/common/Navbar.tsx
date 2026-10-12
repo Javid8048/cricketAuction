@@ -67,7 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [state?.players]);
 
   const auctionStatus = state?.auction?.status || 'IDLE';
-  const userTeam = state?.teams.find((t) => t.id === user?.teamId);
+  const userTeam = Array.isArray(state?.teams) ? state.teams.find((t) => t.id === user?.teamId) : null;
 
   return (
     <header className={`sticky top-0 z-40 bg-[#0c101a]/95 backdrop-blur-md border-b border-slate-800/80 ${layoutMode === 'sidebar' ? 'lg:hidden' : ''}`}>

@@ -1,17 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { Navbar } from './components/common/Navbar';
 import { Sidebar } from './components/common/Sidebar';
 import { Toast } from './components/common/Toast';
 import { SoldUnsoldBanner } from './components/auction/SoldUnsoldBanner';
 import { LiveAuctionPage } from './pages/LiveAuctionPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { TeamDashboardPage } from './pages/TeamDashboardPage';
-import { PlayersDatabasePage } from './pages/PlayersDatabasePage';
-import { TeamsDatabasePage } from './pages/TeamsDatabasePage';
-import { AuctionHistoryPage } from './pages/AuctionHistoryPage';
 import { LoginPage } from './pages/LoginPage';
-import { PlayerRegisterPage } from './components/player/PlayerRegisterPage';
-import { WatchListPage } from './pages/WatchListPage';
 import { AdminSettingsModal } from './components/admin/AdminSettingsModal';
 import { IconPlayerModal } from './components/admin/IconPlayerModal';
 import { TeamFormModal } from './components/admin/TeamFormModal';
@@ -20,6 +13,15 @@ import { RenderWakeupModal } from './components/common/RenderWakeupModal';
 import { useAuctionStore } from './store/auction.store';
 import { useAuthStore } from './store/auth.store';
 import { api } from './services/api';
+
+// Code splitting secondary pages with React.lazy
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
+const TeamDashboardPage = lazy(() => import('./pages/TeamDashboardPage').then(m => ({ default: m.TeamDashboardPage })));
+const PlayersDatabasePage = lazy(() => import('./pages/PlayersDatabasePage').then(m => ({ default: m.PlayersDatabasePage })));
+const TeamsDatabasePage = lazy(() => import('./pages/TeamsDatabasePage').then(m => ({ default: m.TeamsDatabasePage })));
+const AuctionHistoryPage = lazy(() => import('./pages/AuctionHistoryPage').then(m => ({ default: m.AuctionHistoryPage })));
+const PlayerRegisterPage = lazy(() => import('./components/player/PlayerRegisterPage').then(m => ({ default: m.PlayerRegisterPage })));
+const WatchListPage = lazy(() => import('./pages/WatchListPage').then(m => ({ default: m.WatchListPage })));
 
 export function App() {
   const getInitialTab = () => {
@@ -71,6 +73,8 @@ export function App() {
         setCurrentTab('register');
       } else if (hash === '#watchlist') {
         setCurrentTab('watchlist');
+      } else {
+        setCurrentTab(useAuthStore.getState().isAuthenticated ? 'arena' : 'login');
       }
     };
 
@@ -191,7 +195,16 @@ export function App() {
 
         {/* Content Area */}
         <main className="flex-1 min-w-0 pb-20 lg:pb-12">
-          {renderMainContent()}
+          <Suspense
+            fallback={
+              <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+                <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-sm text-slate-400 font-medium">Loading view...</p>
+              </div>
+            }
+          >
+            {renderMainContent()}
+          </Suspense>
         </main>
       </div>
 
@@ -229,11 +242,6 @@ export function App() {
       {/* Live Overlays & Toasts */}
       <SoldUnsoldBanner />
       <Toast />
-
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-[#07090e] py-4 text-center text-xs text-slate-500 font-mono">
-        CRICKET AUCTION ARENA • Local Tournament Edition • Purse: ₹15,000 • 12 Squad Limit • Real-time WebSocket Engine
-      </footer>
     </div>
   );
 }

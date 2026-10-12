@@ -25,7 +25,7 @@ export const LiveBiddingArea: React.FC = () => {
   const currentBid = state?.currentBid || 0;
   const highestBidTeam = state?.highestBidTeam;
   const activePlayer = state?.activePlayer;
-  const userTeam = state?.teams.find((t) => t.id === user?.teamId);
+  const userTeam = Array.isArray(state?.teams) ? state.teams.find((t) => t.id === user?.teamId) : null;
 
   const isAuctionActive = auction?.status === 'ACTIVE';
   const isTeamUser = user?.role === 'TEAM';
@@ -64,12 +64,14 @@ export const LiveBiddingArea: React.FC = () => {
     }
   };
 
+  const minCustomBid = highestBidTeam ? currentBid + 100 : (activePlayer?.basePrice || 100);
+
   const handleCustomBidSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBiddingError(null);
     const parsed = parseInt(customBidInput, 10);
-    if (isNaN(parsed) || parsed <= currentBid) {
-      setBiddingError(`Please enter a valid bid amount greater than current bid (${formatRupees(currentBid)}).`);
+    if (isNaN(parsed) || parsed < minCustomBid) {
+      setBiddingError(`Please enter a valid bid amount of at least ${formatRupees(minCustomBid)}.`);
       return;
     }
 
@@ -280,10 +282,10 @@ export const LiveBiddingArea: React.FC = () => {
                 <input
                   type="number"
                   step="50"
-                  min={currentBid + 100}
+                  min={minCustomBid}
                   value={customBidInput}
                   onChange={(e) => setCustomBidInput(e.target.value)}
-                  placeholder={`Custom ₹ (min ${formatRupees(currentBid + 100)})`}
+                  placeholder={`Custom ₹ (min ${formatRupees(minCustomBid)})`}
                   disabled={!isAuctionActive || isBidding || isHighestBidder || isOverseasLimitReached}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors disabled:opacity-50"
                 />

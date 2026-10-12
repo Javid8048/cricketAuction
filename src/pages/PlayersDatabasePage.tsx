@@ -394,8 +394,8 @@ export const PlayersDatabasePage: React.FC = () => {
                       Age {p.age} {p.place && `• ${p.place}`}
                     </div>
                     {/* Team Name badge / Not Selected */}
-                    <div className="mt-1.5">
-                      {p.teamPlayer?.team ? (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {p.status === 'SOLD' && p.teamPlayer?.team ? (
                         <span
                           className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"
                           style={{
@@ -403,10 +403,23 @@ export const PlayersDatabasePage: React.FC = () => {
                             backgroundColor: `${p.teamPlayer.team.primaryColor}20`,
                             color: p.teamPlayer.team.primaryColor,
                           }}
-                          title={p.teamPlayer.team.name}
+                          title={`Sold to ${p.teamPlayer.team.name}`}
                         >
                           <Shield className="w-2.5 h-2.5 shrink-0" />
-                          <span className="truncate">Team: {p.teamPlayer.team.name}</span>
+                          <span className="truncate">Sold to: {p.teamPlayer.team.name}</span>
+                        </span>
+                      ) : p.belongingTeam ? (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"
+                          style={{
+                            borderColor: `${p.belongingTeam.primaryColor}55`,
+                            backgroundColor: `${p.belongingTeam.primaryColor}20`,
+                            color: p.belongingTeam.primaryColor,
+                          }}
+                          title={`Belongs to ${p.belongingTeam.name}`}
+                        >
+                          <Shield className="w-2.5 h-2.5 shrink-0" />
+                          <span className="truncate">Belongs to: {p.belongingTeam.name}</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 font-medium">
@@ -832,7 +845,7 @@ export const PlayersDatabasePage: React.FC = () => {
             <label className="block text-xs font-bold text-white flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Shield className="w-4 h-4 text-amber-400" />
-                <span>Assigned Team (Optional LOV)</span>
+                <span>Belongs to Team (Optional LOV)</span>
               </span>
               <span className="text-[10px] text-slate-500 font-normal">
                 Editable by Admin anytime
@@ -844,10 +857,10 @@ export const PlayersDatabasePage: React.FC = () => {
                 onChange={(e) => setNewPlayer({ ...newPlayer, teamId: e.target.value })}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
               >
-                <option value="">Not Selected (Free Agent in Auction Pool)</option>
+                <option value="">Not Selected (Open Auction Pool)</option>
                 {teams.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({t.shortName}) — Purse: {formatRupees(t.remainingPurse)}
+                    {t.name} ({t.shortName})
                   </option>
                 ))}
               </select>
@@ -855,11 +868,11 @@ export const PlayersDatabasePage: React.FC = () => {
             <p className="text-[11px] text-slate-500">
               {newPlayer.teamId ? (
                 <span className="text-amber-300 font-medium">
-                  Player will be directly drafted into{' '}
-                  <strong>{teams.find((t) => t.id === newPlayer.teamId)?.name}</strong> squad.
+                  Player belongs to{' '}
+                  <strong>{teams.find((t) => t.id === newPlayer.teamId)?.name}</strong>. Player will enter the auction match and can be bid on by any team or assigned by Admin.
                 </span>
               ) : (
-                <span>Not selected: Player remains unassigned in the upcoming auction pool.</span>
+                <span>Not selected: Player belongs to no specific team (Open Auction Pool).</span>
               )}
             </p>
           </div>

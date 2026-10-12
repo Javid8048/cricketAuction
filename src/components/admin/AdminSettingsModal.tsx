@@ -21,6 +21,7 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, 
   const [defaultPurse, setDefaultPurse] = useState<number>(auction?.defaultPurse || 15000);
   const [defaultSquadLimit, setDefaultSquadLimit] = useState<number>(auction?.defaultSquadLimit || 12);
   const [iconPlayerPrice, setIconPlayerPrice] = useState<number>(auction?.iconPlayerPrice || 2500);
+  const [applyToExistingTeams, setApplyToExistingTeams] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen && auction) {
@@ -30,6 +31,7 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, 
       setDefaultPurse(auction.defaultPurse || 15000);
       setDefaultSquadLimit(auction.defaultSquadLimit || 12);
       setIconPlayerPrice(auction.iconPlayerPrice || 2500);
+      setApplyToExistingTeams(false);
     }
   }, [isOpen, auction?.id, auction?.timerEnabled, auction?.autoSell, auction?.defaultTimerSec]);
 
@@ -55,6 +57,7 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, 
         defaultPurse: Number(defaultPurse),
         defaultSquadLimit: Number(defaultSquadLimit),
         iconPlayerPrice: Number(iconPlayerPrice),
+        applyToExistingTeams,
       });
       await initState();
       showToast('Tournament & Auction settings saved successfully!', 'success');
@@ -245,6 +248,19 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, 
                 />
                 <span className="text-[10px] text-slate-500">{formatRupees(iconPlayerPrice)}</span>
               </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="applyToExistingTeams"
+                checked={applyToExistingTeams}
+                onChange={(e) => setApplyToExistingTeams(e.target.checked)}
+                className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-amber-500"
+              />
+              <label htmlFor="applyToExistingTeams" className="text-[11px] text-slate-300 cursor-pointer select-none">
+                Apply new purse & squad limits to all existing teams immediately
+              </label>
             </div>
           </div>
 
