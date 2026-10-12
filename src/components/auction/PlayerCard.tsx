@@ -65,13 +65,13 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
       </div>
 
       {/* Player Image & Name Hero */}
-      <div className="p-6 relative">
-        <div className="flex items-center gap-5">
+      <div className="p-4 sm:p-6 relative">
+        <div className="flex items-center gap-3.5 sm:gap-5">
           <div className="relative group shrink-0">
             <img
               src={player.profileImage}
               alt={player.name}
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-amber-500/40 shadow-xl shadow-black/60 group-hover:scale-105 transition-transform"
+              className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-amber-500/40 shadow-xl shadow-black/60 group-hover:scale-105 transition-transform"
               onError={(e) => {
                 // Fallback avatar
                 (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${player.name}`;
@@ -84,7 +84,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-white font-display truncate">
+              <h2 className="text-lg sm:text-2xl font-black text-white font-display truncate">
                 {player.name}
               </h2>
             </div>

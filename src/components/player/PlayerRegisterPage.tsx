@@ -356,12 +356,12 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
           </div>
         ) : (
           /* Registration Form */
-          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-md">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl backdrop-blur-md">
             {/* Header */}
-            <div className="mb-6 pb-4 border-b border-slate-800">
+            <div className="mb-5 sm:mb-6 pb-3 sm:pb-4 border-b border-slate-800">
               <div className="flex items-center justify-between gap-3 mb-1">
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                  <User className="w-6 h-6 text-amber-400" />
+                <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
                   Player Registration
                 </h1>
                 <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-mono font-bold border border-amber-500/30">

@@ -59,6 +59,25 @@ class ApiService {
     return response.json();
   }
 
+  // Health check for Render / backend server
+  async checkHealth(timeoutMs = 4000): Promise<boolean> {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(`${getBackendUrl()}/health`, {
+        signal: controller.signal,
+      });
+      clearTimeout(id);
+      if (res.ok) {
+        const data = await res.json();
+        return data.status === 'ok';
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Auth
   async login(email: string, password: string) {
     const res = await fetch(`${getApiBaseUrl()}/auth/login`, {

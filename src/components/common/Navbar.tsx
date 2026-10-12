@@ -327,7 +327,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               ) : (
                 <div className="hidden md:flex flex-col items-end">
-                  <span className="text-xs font-bold text-amber-300">KhaderMeeran</span>
+                  <span className="text-xs font-bold text-amber-300">
+                    {user.name || user.username || 'Commission Admin'}
+                  </span>
                   <span className="text-[10px] text-slate-400 font-mono">Commission Admin</span>
                 </div>
               )}

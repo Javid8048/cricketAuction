@@ -19,6 +19,7 @@ import { FranchiseCredentialsModal } from './components/admin/FranchiseCredentia
 import { RenderWakeupModal } from './components/common/RenderWakeupModal';
 import { useAuctionStore } from './store/auction.store';
 import { useAuthStore } from './store/auth.store';
+import { api } from './services/api';
 
 export function App() {
   const getInitialTab = () => {
@@ -56,6 +57,13 @@ export function App() {
     checkAuth();
     initState();
     initSocketListeners();
+
+    // Check backend health on initial load (Render cold wakeup detection)
+    api.checkHealth(3500).then((isHealthy) => {
+      if (!isHealthy) {
+        setIsRenderWakeupOpen(true);
+      }
+    });
 
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();

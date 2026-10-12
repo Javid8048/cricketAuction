@@ -89,23 +89,23 @@ export const LiveBiddingArea: React.FC = () => {
     : 'text-emerald-400';
 
   return (
-    <div className="bg-[#121724]/95 border border-slate-800/90 rounded-2xl p-6 shadow-2xl relative flex flex-col justify-between backdrop-blur-md">
+    <div className="bg-[#121724]/95 border border-slate-800/90 rounded-2xl p-3.5 sm:p-6 shadow-2xl relative flex flex-col justify-between backdrop-blur-md">
       {/* Top Header: Current Bid Label & Live Countdown Timer */}
       <div>
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
+        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-800/80">
           <div>
-            <span className="text-xs font-mono tracking-widest text-slate-400 uppercase font-semibold">
+            <span className="text-[11px] sm:text-xs font-mono tracking-widest text-slate-400 uppercase font-semibold">
               CURRENT BID AMOUNT
             </span>
-            <div className="text-[11px] text-slate-500 mt-0.5">
+            <div className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">
               Live team bidding in progress
             </div>
           </div>
 
           {/* Countdown Clock Display */}
-          <div className="flex items-center gap-3 bg-[#171f33] px-4 py-2 rounded-2xl border border-slate-700/60 shadow-inner">
+          <div className="flex items-center gap-2 sm:gap-3 bg-[#171f33] px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl border border-slate-700/60 shadow-inner">
             <Timer
-              className={`w-5 h-5 ${
+              className={`w-4 h-4 sm:w-5 sm:h-5 ${
                 auction?.timerEnabled === false
                   ? 'text-slate-400'
                   : isTimerUrgent
@@ -116,11 +116,11 @@ export const LiveBiddingArea: React.FC = () => {
               }`}
             />
             <div className="flex flex-col items-center">
-              <span className="text-[9px] font-mono tracking-widest text-slate-400 font-bold uppercase">
+              <span className="text-[8px] sm:text-[9px] font-mono tracking-widest text-slate-400 font-bold uppercase">
                 {auction?.timerEnabled === false ? 'TIMER' : 'BID TIMER'}
               </span>
-              <span className={`text-2xl font-black font-mono tracking-widest transition-all ${
-                auction?.timerEnabled === false ? 'text-slate-400 text-lg' : timerStyle
+              <span className={`text-xl sm:text-2xl font-black font-mono tracking-widest transition-all ${
+                auction?.timerEnabled === false ? 'text-slate-400 text-base sm:text-lg' : timerStyle
               }`}>
                 {auction?.timerEnabled === false ? 'MANUAL' : `00:${String(secondsLeft).padStart(2, '0')}`}
               </span>
@@ -129,7 +129,7 @@ export const LiveBiddingArea: React.FC = () => {
         </div>
 
         {/* Centerpiece: Massive Animated Current Bid Amount */}
-        <div className="my-6 text-center py-6 px-4 rounded-3xl bg-gradient-to-b from-[#182035]/80 to-[#101626]/90 border border-amber-500/20 relative overflow-hidden shadow-2xl">
+        <div className="my-3 sm:my-6 text-center py-4 sm:py-6 px-3 sm:px-4 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#182035]/80 to-[#101626]/90 border border-amber-500/20 relative overflow-hidden shadow-2xl">
           {/* Glowing flash effect when new bid lands */}
           <div
             className={`absolute inset-0 bg-amber-500/20 pointer-events-none transition-opacity duration-500 ${
@@ -138,14 +138,14 @@ export const LiveBiddingArea: React.FC = () => {
           />
 
           <div className="relative z-10">
-            <div className="text-xs font-mono font-bold text-amber-400 uppercase tracking-widest mb-1 flex items-center justify-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <div className="text-[10px] sm:text-xs font-mono font-bold text-amber-400 uppercase tracking-widest mb-1 flex items-center justify-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-amber-400" />
               <span>LEADING BID</span>
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <Sparkles className="w-3 h-3 text-amber-400" />
             </div>
 
             <div
-              className={`text-4xl sm:text-6xl font-black font-mono tracking-tight transition-transform duration-300 ${
+              className={`text-3xl sm:text-5xl lg:text-6xl font-black font-mono tracking-tight transition-transform duration-300 ${
                 lastBidFlash ? 'scale-110 text-amber-300' : 'text-white'
               }`}
             >

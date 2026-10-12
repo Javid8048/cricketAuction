@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Users,
@@ -7,6 +7,8 @@ import {
   Phone,
   MapPin,
   Key,
+  Eye,
+  EyeOff,
   Download,
   Trash2,
   Edit2,
@@ -40,6 +42,7 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
   onManageIcons,
   onSelectPlayer,
 }) => {
+  const [showPassword, setShowPassword] = useState(false);
   if (!isOpen || !team) return null;
 
   const totalSpent = team.totalPurse - team.remainingPurse;
@@ -234,12 +237,20 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
                     {team.loginUsername}
                   </span>
                   {team.loginPassword && (
-                    <>
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold ml-2">Password:</span>
-                      <span className="font-mono text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/40">
-                        {team.loginPassword}
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <span className="text-[10px] text-slate-500 uppercase font-semibold">Password:</span>
+                      <span className="font-mono text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/40 text-xs">
+                        {showPassword ? team.loginPassword : '••••••••'}
                       </span>
-                    </>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+                        title={showPassword ? 'Hide Password' : 'Show Password'}
+                      >
+                        {showPassword ? <EyeOff className="w-3.5 h-3.5 text-amber-400" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Settings, Clock, Check, X, Shield, KeyRound, AlertCircle, Coins, Users, Star } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuctionStore } from '../../store/auction.store';
+import { useAuthStore } from '../../store/auth.store';
 import { formatRupees } from '../../utils/currency';
 
 interface AdminSettingsModalProps {
@@ -11,6 +12,7 @@ interface AdminSettingsModalProps {
 
 export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, onClose }) => {
   const { state, showToast, initState } = useAuctionStore();
+  const { user } = useAuthStore();
   const auction = state?.auction;
 
   const [autoSell, setAutoSell] = useState<boolean>(auction?.autoSell !== undefined ? auction.autoSell : true);
@@ -92,8 +94,8 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-lg p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 my-8">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-lg p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 my-4 sm:my-8">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
@@ -252,9 +254,9 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, 
               <div>
                 <label className="text-xs font-bold text-white block flex items-center gap-1.5">
                   <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                  Admin Password
+                  Admin Account Security
                 </label>
-                <p className="text-[11px] text-slate-400">Username: <strong className="text-white">KhaderMeeran</strong></p>
+                <p className="text-[11px] text-slate-400">Authenticated Admin: <strong className="text-white">{user?.username || user?.name || 'Administrator'}</strong></p>
               </div>
               <button
                 type="button"

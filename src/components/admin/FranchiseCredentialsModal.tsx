@@ -186,7 +186,7 @@ export const TeamCredentialsModal: React.FC<TeamCredentialsModalProps> = ({
           </div>
         </div>
 
-        {/* Credentials Table / List */}
+        {/* Credentials Table / Mobile Cards */}
         <div className="overflow-y-auto flex-1 rounded-xl border border-slate-800 bg-slate-950/50">
           {filteredCredentials.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-xs">
@@ -195,55 +195,51 @@ export const TeamCredentialsModal: React.FC<TeamCredentialsModalProps> = ({
                 : 'No teams match your search query.'}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-900/90 text-slate-400 border-b border-slate-800 font-semibold sticky top-0">
-                  <tr>
-                    <th className="py-3 px-3">Team</th>
-                    <th className="py-3 px-3">Owner & Phone</th>
-                    <th className="py-3 px-3">Username</th>
-                    <th className="py-3 px-3">Password</th>
-                    <th className="py-3 px-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {filteredCredentials.map((team) => {
-                    const isPwVisible = visiblePasswords[team.id] || false;
-                    return (
-                      <tr key={team.id} className="hover:bg-slate-800/40 transition-colors">
-                        {/* Team name & color badge */}
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className="w-7 h-7 rounded-lg flex items-center justify-center font-bold font-mono text-[11px] text-white shadow-sm shrink-0"
-                              style={{ backgroundColor: team.primaryColor || '#3B82F6' }}
-                            >
-                              {team.shortName || team.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="font-bold text-white">{team.name}</div>
-                              <div className="text-[10px] text-slate-400 font-mono">{team.shortName}</div>
+            <div>
+              {/* Mobile View: Clean Responsive Cards */}
+              <div className="block sm:hidden divide-y divide-slate-800/60">
+                {filteredCredentials.map((team) => {
+                  const isPwVisible = visiblePasswords[team.id] || false;
+                  return (
+                    <div key={team.id} className="p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-7 h-7 rounded-lg flex items-center justify-center font-bold font-mono text-[11px] text-white shadow-sm shrink-0"
+                            style={{ backgroundColor: team.primaryColor || '#3B82F6' }}
+                          >
+                            {team.shortName || team.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-bold text-white text-xs">{team.name}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {team.ownerName ? `Owner: ${team.ownerName}` : team.shortName}
                             </div>
                           </div>
-                        </td>
+                        </div>
 
-                        {/* Owner & Phone */}
-                        <td className="py-3 px-3">
-                          <div className="text-slate-300 font-medium">{team.ownerName || '—'}</div>
-                          <div className="text-[10px] text-slate-500 font-mono">{team.phone || '—'}</div>
-                        </td>
+                        <button
+                          onClick={() => handleStartEdit(team)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium inline-flex items-center gap-1 transition-colors"
+                        >
+                          <Edit2 className="w-3 h-3 text-amber-400" />
+                          <span>Edit</span>
+                        </button>
+                      </div>
 
+                      <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-slate-850">
                         {/* Username */}
-                        <td className="py-3 px-3">
-                          {team.loginUsername ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-cyan-400 bg-cyan-950/40 border border-cyan-800/40 px-2 py-0.5 rounded text-[11px]">
-                                {team.loginUsername}
-                              </span>
+                        <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                          <span className="text-[10px] text-slate-500 block uppercase font-semibold">Username</span>
+                          <div className="flex items-center justify-between gap-1 mt-0.5">
+                            <span className="font-mono text-cyan-400 truncate">
+                              {team.loginUsername || 'Not set'}
+                            </span>
+                            {team.loginUsername && (
                               <button
                                 onClick={() => handleCopy(team.loginUsername!, `u-${team.id}`)}
-                                className="p-1 rounded text-slate-400 hover:text-white transition-colors"
-                                title="Copy Username"
+                                className="p-1 rounded text-slate-400 hover:text-white shrink-0"
+                                title="Copy"
                               >
                                 {copiedKey === `u-${team.id}` ? (
                                   <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -251,62 +247,169 @@ export const TeamCredentialsModal: React.FC<TeamCredentialsModalProps> = ({
                                   <Copy className="w-3.5 h-3.5" />
                                 )}
                               </button>
-                            </div>
-                          ) : (
-                            <span className="text-slate-500 italic">Not set</span>
-                          )}
-                        </td>
+                            )}
+                          </div>
+                        </div>
 
                         {/* Password */}
-                        <td className="py-3 px-3">
-                          {team.loginPassword ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-amber-300 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded text-[11px] min-w-[70px]">
-                                {isPwVisible ? team.loginPassword : '••••••••'}
-                              </span>
-                              <button
-                                onClick={() => togglePasswordVisibility(team.id)}
-                                className="p-1 rounded text-slate-400 hover:text-white transition-colors"
-                                title={isPwVisible ? 'Hide Password' : 'Show Password'}
-                              >
-                                {isPwVisible ? (
-                                  <EyeOff className="w-3.5 h-3.5 text-amber-400" />
-                                ) : (
-                                  <Eye className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => handleCopy(team.loginPassword!, `p-${team.id}`)}
-                                className="p-1 rounded text-slate-400 hover:text-white transition-colors"
-                                title="Copy Password"
-                              >
-                                {copiedKey === `p-${team.id}` ? (
-                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-slate-500 italic">Not set</span>
-                          )}
-                        </td>
+                        <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                          <span className="text-[10px] text-slate-500 block uppercase font-semibold">Password</span>
+                          <div className="flex items-center justify-between gap-1 mt-0.5">
+                            <span className="font-mono text-amber-300 truncate">
+                              {team.loginPassword
+                                ? isPwVisible
+                                  ? team.loginPassword
+                                  : '••••••••'
+                                : 'Not set'}
+                            </span>
+                            {team.loginPassword && (
+                              <div className="flex items-center shrink-0">
+                                <button
+                                  onClick={() => togglePasswordVisibility(team.id)}
+                                  className="p-1 rounded text-slate-400 hover:text-white"
+                                  title={isPwVisible ? 'Hide' : 'Show'}
+                                >
+                                  {isPwVisible ? (
+                                    <EyeOff className="w-3.5 h-3.5 text-amber-400" />
+                                  ) : (
+                                    <Eye className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => handleCopy(team.loginPassword!, `p-${team.id}`)}
+                                  className="p-1 rounded text-slate-400 hover:text-white"
+                                  title="Copy"
+                                >
+                                  {copiedKey === `p-${team.id}` ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
-                        {/* Action: Edit Credentials */}
-                        <td className="py-3 px-3 text-right">
-                          <button
-                            onClick={() => handleStartEdit(team)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-[11px] font-medium inline-flex items-center gap-1 transition-colors"
-                          >
-                            <Edit2 className="w-3 h-3 text-amber-400" />
-                            Edit
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              {/* Desktop View: Full Table */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-900/90 text-slate-400 border-b border-slate-800 font-semibold sticky top-0">
+                    <tr>
+                      <th className="py-3 px-3">Team</th>
+                      <th className="py-3 px-3">Owner & Phone</th>
+                      <th className="py-3 px-3">Username</th>
+                      <th className="py-3 px-3">Password</th>
+                      <th className="py-3 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {filteredCredentials.map((team) => {
+                      const isPwVisible = visiblePasswords[team.id] || false;
+                      return (
+                        <tr key={team.id} className="hover:bg-slate-800/40 transition-colors">
+                          {/* Team name & color badge */}
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                className="w-7 h-7 rounded-lg flex items-center justify-center font-bold font-mono text-[11px] text-white shadow-sm shrink-0"
+                                style={{ backgroundColor: team.primaryColor || '#3B82F6' }}
+                              >
+                                {team.shortName || team.name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-bold text-white">{team.name}</div>
+                                <div className="text-[10px] text-slate-400 font-mono">{team.shortName}</div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Owner & Phone */}
+                          <td className="py-3 px-3">
+                            <div className="text-slate-300 font-medium">{team.ownerName || '—'}</div>
+                            <div className="text-[10px] text-slate-500 font-mono">{team.phone || '—'}</div>
+                          </td>
+
+                          {/* Username */}
+                          <td className="py-3 px-3">
+                            {team.loginUsername ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-cyan-400 bg-cyan-950/40 border border-cyan-800/40 px-2 py-0.5 rounded text-[11px]">
+                                  {team.loginUsername}
+                                </span>
+                                <button
+                                  onClick={() => handleCopy(team.loginUsername!, `u-${team.id}`)}
+                                  className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+                                  title="Copy Username"
+                                >
+                                  {copiedKey === `u-${team.id}` ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-slate-500 italic">Not set</span>
+                            )}
+                          </td>
+
+                          {/* Password */}
+                          <td className="py-3 px-3">
+                            {team.loginPassword ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-amber-300 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded text-[11px] min-w-[70px]">
+                                  {isPwVisible ? team.loginPassword : '••••••••'}
+                                </span>
+                                <button
+                                  onClick={() => togglePasswordVisibility(team.id)}
+                                  className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+                                  title={isPwVisible ? 'Hide Password' : 'Show Password'}
+                                >
+                                  {isPwVisible ? (
+                                    <EyeOff className="w-3.5 h-3.5 text-amber-400" />
+                                  ) : (
+                                    <Eye className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => handleCopy(team.loginPassword!, `p-${team.id}`)}
+                                  className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+                                  title="Copy Password"
+                                >
+                                  {copiedKey === `p-${team.id}` ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-slate-500 italic">Not set</span>
+                            )}
+                          </td>
+
+                          {/* Action: Edit Credentials */}
+                          <td className="py-3 px-3 text-right">
+                            <button
+                              onClick={() => handleStartEdit(team)}
+                              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-[11px] font-medium inline-flex items-center gap-1 transition-colors"
+                            >
+                              <Edit2 className="w-3 h-3 text-amber-400" />
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

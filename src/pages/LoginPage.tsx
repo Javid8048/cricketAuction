@@ -41,8 +41,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onOpenRegister,
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-3 sm:px-4 py-8 sm:py-12">
-      <div className="w-full max-w-md bg-[#121724] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-md">
+    <div className="min-h-[85vh] flex items-center justify-center px-3 sm:px-4 py-6 sm:py-12">
+      <div className="w-full max-w-md bg-[#121724] border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-md">
         {/* Glowing aura */}
         <div className="absolute -top-20 -right-20 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
 

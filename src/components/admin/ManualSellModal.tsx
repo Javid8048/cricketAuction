@@ -97,8 +97,8 @@ export const ManualSellModal: React.FC<ManualSellModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-emerald-500/40 rounded-2xl w-full max-w-xl p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 my-8">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-emerald-500/40 rounded-2xl w-full max-w-xl p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 my-4 sm:my-8">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
