@@ -60,8 +60,11 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, 
         applyToExistingTeams,
       });
       await initState();
-      showToast('Tournament & Auction settings saved successfully!', 'success');
+      showToast('Settings saved! Refreshing page to update changes...', 'success');
       onClose();
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
     } catch (err: any) {
       showToast(err.message || 'Failed to update settings', 'error');
     } finally {

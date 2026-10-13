@@ -25,6 +25,7 @@ import {
   ChevronDown,
   ChevronUp,
   Shield,
+  Gavel,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Player, Team } from '../types';
@@ -36,8 +37,13 @@ import { Modal } from '../components/common/Modal';
 import { useAuthStore } from '../store/auth.store';
 import { useAuctionStore } from '../store/auction.store';
 
-export const PlayersDatabasePage: React.FC = () => {
+interface PlayersDatabasePageProps {
+  onSelectTab?: (tab: string) => void;
+}
+
+export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSelectTab }) => {
   const { user } = useAuthStore();
+  const { showToast } = useAuctionStore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -456,6 +462,26 @@ export const PlayersDatabasePage: React.FC = () => {
                   <Info className="w-3.5 h-3.5 text-amber-400" />
                   <span>View Dossier</span>
                 </button>
+
+                {isAdmin && p.status === 'UNSOLD' && (
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm(`Put ${p.name} on the auction block and start BID immediately?`)) return;
+                      try {
+                        await api.selectPlayer(p.id);
+                        showToast(`⚡ ${p.name} is now LIVE on the auction block!`, 'success');
+                        onSelectTab?.('arena');
+                      } catch (err: any) {
+                        showToast(err.message || 'Failed to start bidding', 'error');
+                      }
+                    }}
+                    className="py-1.5 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/20 transition-all active:scale-95 shrink-0"
+                    title="Put unsold player on auction block and start bidding"
+                  >
+                    <Gavel className="w-3.5 h-3.5" />
+                    <span>Start BID</span>
+                  </button>
+                )}
 
                 {isAdmin && (
                   <button

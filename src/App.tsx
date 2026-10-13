@@ -10,6 +10,7 @@ import { IconPlayerModal } from './components/admin/IconPlayerModal';
 import { TeamFormModal } from './components/admin/TeamFormModal';
 import { FranchiseCredentialsModal } from './components/admin/FranchiseCredentialsModal';
 import { RenderWakeupModal } from './components/common/RenderWakeupModal';
+import { DbConnectionGatekeeper } from './components/common/DbConnectionGatekeeper';
 import { useAuctionStore } from './store/auction.store';
 import { useAuthStore } from './store/auth.store';
 import { api } from './services/api';
@@ -51,21 +52,24 @@ export function App() {
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
   const [isRenderWakeupOpen, setIsRenderWakeupOpen] = useState(false);
+  const [isDbConnected, setIsDbConnected] = useState<boolean>(false);
 
   const { initState, initSocketListeners } = useAuctionStore();
   const { user, isAuthenticated, checkAuth } = useAuthStore();
 
-  useEffect(() => {
+  const handleDbConnected = () => {
+    setIsDbConnected(true);
     checkAuth();
     initState();
     initSocketListeners();
+  };
 
-    // Check backend health on initial load (Render cold wakeup detection)
-    api.checkHealth(3500).then((isHealthy) => {
-      if (!isHealthy) {
-        setIsRenderWakeupOpen(true);
-      }
-    });
+  useEffect(() => {
+    if (isDbConnected) {
+      checkAuth();
+      initState();
+      initSocketListeners();
+    }
 
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();
@@ -80,7 +84,7 @@ export function App() {
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [checkAuth, initState, initSocketListeners]);
+  }, [isDbConnected, checkAuth, initState, initSocketListeners]);
 
   const toggleLayoutMode = () => {
     const nextMode = layoutMode === 'topbar' ? 'sidebar' : 'topbar';
@@ -131,7 +135,7 @@ export function App() {
       case 'watchlist':
         return <WatchListPage onOpenLogin={() => handleTabChange('login')} />;
       case 'players':
-        return <PlayersDatabasePage />;
+        return <PlayersDatabasePage onSelectTab={handleTabChange} />;
       case 'teams':
         return <TeamsDatabasePage />;
       case 'register':
@@ -159,6 +163,21 @@ export function App() {
         return <LiveAuctionPage />;
     }
   };
+
+  // Requirement 2: Check DB connection on refresh and allow access only once connected
+  if (!isDbConnected) {
+    return (
+      <DbConnectionGatekeeper
+        onConnected={handleDbConnected}
+        onBypass={() => {
+          setIsDbConnected(true);
+          checkAuth();
+          initState();
+          initSocketListeners();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">

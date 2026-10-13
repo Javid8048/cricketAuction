@@ -67,6 +67,11 @@ export const AdminControlPanel: React.FC = () => {
     );
   };
 
+  const unsoldPlayers = allPlayers.filter((p) => p.status === 'UNSOLD');
+  const upcomingPlayers = allPlayers.filter((p) => p.status !== 'UNSOLD' && p.status !== 'SOLD');
+  const soldPlayers = allPlayers.filter((p) => p.status === 'SOLD');
+  const isSelectedUnsold = unsoldPlayers.some((p) => p.id === selectedPlayerId);
+
   return (
     <div className="bg-[#121724] border border-amber-500/30 rounded-2xl p-6 shadow-2xl backdrop-blur-md">
       {/* Header bar with Status Badges and Quick Shortcuts */}
@@ -114,30 +119,65 @@ export const AdminControlPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Manual Player Selection */}
+      {/* Manual Player Selection & Unsold Fast Re-bid */}
       <div className="mb-6 bg-[#161d2e] p-4 rounded-xl border border-slate-800">
-        <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-          Introduce Player to Auction Block
-        </label>
-        <div className="flex gap-2">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Gavel className="w-3.5 h-3.5 text-amber-400" />
+            Introduce Player to Auction Block
+          </label>
+          {unsoldPlayers.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-[10px] font-bold font-mono">
+              ⚠️ {unsoldPlayers.length} Unsold Player{unsoldPlayers.length > 1 ? 's' : ''} Ready for Re-Bid
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2">
           <select
             value={selectedPlayerId}
             onChange={(e) => setSelectedPlayerId(e.target.value)}
             className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
           >
             <option value="">-- Choose player from catalog --</option>
-            {allPlayers.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.country} • {p.role} • {formatRupees(p.basePrice)}) [{p.status}]
-              </option>
-            ))}
+            {unsoldPlayers.length > 0 && (
+              <optgroup label="🔴 UNSOLD PLAYERS (Ready to Start BID Again)">
+                {unsoldPlayers.map((p) => (
+                  <option key={p.id} value={p.id} className="text-rose-300 font-semibold bg-slate-950">
+                    🔴 [UNSOLD] #{p.sNo || '-'} {p.name} ({p.role} • Base {formatRupees(p.basePrice)})
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            <optgroup label="Upcoming / Catalog Players">
+              {upcomingPlayers.map((p) => (
+                <option key={p.id} value={p.id}>
+                  #{p.sNo || '-'} {p.name} ({p.country} • {p.role} • {formatRupees(p.basePrice)})
+                </option>
+              ))}
+            </optgroup>
+            {soldPlayers.length > 0 && (
+              <optgroup label="Already Sold Players">
+                {soldPlayers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    ✓ [SOLD] {p.name} ({formatRupees(p.currentPrice || p.basePrice)})
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
+
           <button
             onClick={handleManualSelect}
             disabled={!selectedPlayerId || loadingAction}
-            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all active:scale-95 disabled:opacity-40"
+            className={`px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1.5 shrink-0 ${
+              isSelectedUnsold
+                ? 'bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-slate-950 shadow-md shadow-rose-500/20'
+                : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+            }`}
           >
-            Put on Block
+            <Gavel className="w-3.5 h-3.5" />
+            <span>{isSelectedUnsold ? 'Start BID on Unsold Player' : 'Put on Block'}</span>
           </button>
         </div>
       </div>
@@ -228,12 +268,23 @@ export const AdminControlPanel: React.FC = () => {
 
         {/* RE-AUCTION UNSOLD */}
         <button
-          onClick={() => handleAction('start', () => api.reauctionUnsold(), 'Initiate Round 2 for all UNSOLD players?')}
-          disabled={loadingAction}
-          className="p-3 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-200 text-xs font-bold flex flex-col items-center gap-1.5 transition-all"
+          onClick={() =>
+            handleAction(
+              'start',
+              () => api.reauctionUnsold(),
+              `Initiate next round for all ${unsoldPlayers.length} UNSOLD player${unsoldPlayers.length > 1 ? 's' : ''}?`
+            )
+          }
+          disabled={loadingAction || unsoldPlayers.length === 0}
+          className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+            unsoldPlayers.length > 0
+              ? 'bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/50 text-rose-200 shadow-lg shadow-rose-500/10 animate-pulse'
+              : 'bg-slate-800/40 border-slate-700/40 text-slate-500 opacity-50 cursor-not-allowed'
+          }`}
+          title={unsoldPlayers.length > 0 ? `Start bidding again on ${unsoldPlayers.length} unsold players` : 'No unsold players to re-auction'}
         >
-          <RefreshCw className="w-5 h-5 text-blue-400" />
-          <span>RE-AUCTION UNSOLD</span>
+          <RefreshCw className="w-5 h-5 text-rose-400" />
+          <span>RE-AUCTION ALL UNSOLD ({unsoldPlayers.length})</span>
         </button>
 
         {/* RESET AUCTION */}

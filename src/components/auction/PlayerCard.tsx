@@ -1,7 +1,10 @@
 import React from 'react';
-import { Globe, Award, Shield, Zap, Target, Flame, Info, Star, MapPin, Calendar } from 'lucide-react';
+import { Globe, Award, Shield, Zap, Target, Flame, Info, Star, MapPin, Calendar, RefreshCw } from 'lucide-react';
 import { Player } from '../../types';
 import { formatRupees } from '../../utils/currency';
+import { useAuctionStore } from '../../store/auction.store';
+import { useAuthStore } from '../../store/auth.store';
+import { api } from '../../services/api';
 
 interface PlayerCardProps {
   player: Player | null;
@@ -9,9 +12,15 @@ interface PlayerCardProps {
 }
 
 export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile }) => {
+  const { state, showToast } = useAuctionStore();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
+
   if (!player) {
+    const unsoldPlayers = state?.players?.filter((p) => p.status === 'UNSOLD') || [];
+
     return (
-      <div className="bg-[#121724]/90 border border-slate-800 rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[480px]">
+      <div className="bg-[#121724]/90 border border-slate-800 rounded-2xl p-6 sm:p-8 text-center flex flex-col items-center justify-center min-h-[480px]">
         <div className="w-20 h-20 rounded-full bg-slate-800/80 flex items-center justify-center text-slate-500 mb-4">
           <Award className="w-10 h-10" />
         </div>
@@ -19,6 +28,31 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
         <p className="text-sm text-slate-500 mt-2 max-w-xs">
           Auction is currently waiting for the admin to introduce the next player lot.
         </p>
+
+        {unsoldPlayers.length > 0 && isAdmin && (
+          <div className="mt-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 max-w-xs w-full animate-in fade-in">
+            <span className="text-xs text-rose-300 font-bold block mb-1">
+              ⚠️ {unsoldPlayers.length} Unsold Player{unsoldPlayers.length > 1 ? 's' : ''} in Catalog
+            </span>
+            <p className="text-[11px] text-slate-400 mb-3">
+              You can start round 2 for all unsold players or pick one to bid.
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  await api.reauctionUnsold();
+                  showToast('Round 2 initiated! Unsold players are now on the block.', 'success');
+                } catch (err: any) {
+                  showToast(err.message || 'Failed to re-auction unsold players', 'error');
+                }
+              }}
+              className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/20 active:scale-95 transition-all"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Start BID for Unsold ({unsoldPlayers.length})</span>
+            </button>
+          </div>
+        )}
       </div>
     );
   }
