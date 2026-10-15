@@ -728,7 +728,7 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
                     onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
                   >
-                    <option value="">Not Selected (Independent Player in Auction Pool)</option>
+                    <option value="">Not Selected (New Player / Yet to decide - Independent Pool)</option>
                     {teams.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name} ({t.shortName})
@@ -740,11 +740,11 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
                   {formData.teamId ? (
                     <span className="text-amber-300 font-medium">
                       You belong to{' '}
-                      <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong>. You will participate in the auction match and can be bid on by any team or assigned by Admin.
+                      <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong>. In the auction, players are shuffled into the pool so that even though you belong to this team, you can be bid on and played by any other team!
                     </span>
                   ) : (
                     <span>
-                      If you belong to a team, select it above. If not selected, it will show as Not Selected and can be edited later by the tournament admin.
+                      Independent / New talent (yet to be decided to add in a team). You will be shuffled into the auction pool and can be bid on by any team.
                     </span>
                   )}
                 </p>

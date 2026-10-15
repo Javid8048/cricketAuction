@@ -284,6 +284,14 @@ class ApiService {
     return this.handleResponse<any>(res);
   }
 
+  async shuffleAuctionPool() {
+    const res = await fetch(`${getApiBaseUrl()}/auction/shuffle`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse<any>(res);
+  }
+
   async getAuctionHistory(teamId?: string, playerId?: string) {
     const params = new URLSearchParams();
     if (teamId) params.append('teamId', teamId);

@@ -511,10 +511,10 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
           <label className="block text-xs font-bold text-white flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Shield className="w-4 h-4 text-amber-400" />
-              <span>Assigned Team (Optional LOV)</span>
+              <span>Belonging Team (Home Affiliation)</span>
             </span>
             <span className="text-[10px] text-slate-500 font-normal">
-              Editable by Admin anytime
+              Editable anytime
             </span>
           </label>
           <div className="relative">
@@ -523,7 +523,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
               onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
             >
-              <option value="">Not Selected (Open Auction Pool)</option>
+              <option value="">Not Selected (New Player / Yet to decide - Open Pool)</option>
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name} ({t.shortName})
@@ -535,10 +535,10 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
             {formData.teamId ? (
               <span className="text-amber-300 font-medium">
                 Player belongs to{' '}
-                <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong>. Player participates in the auction and can be bid on or assigned by admin.
+                <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong>. In the auction, players are shuffled into the pool so that even though they belong to this team, they can be bid on and played by any other team!
               </span>
             ) : (
-              <span>Not selected: Player belongs to no specific team (Open Auction Pool).</span>
+              <span>New player (not yet decided to add in a team). Shuffled into the pool and can be bid on and played by any team.</span>
             )}
           </p>
         </div>

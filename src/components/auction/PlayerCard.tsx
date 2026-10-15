@@ -160,8 +160,8 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
               </div>
             </div>
 
-            {/* Belonging Team Badge */}
-            <div className="mt-2.5">
+            {/* Belonging Team & Bidding Freedom Badge */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
               {player.belongingTeam ? (
                 <span
                   className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border shadow-sm"
@@ -170,14 +170,34 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
                     backgroundColor: `${player.belongingTeam.primaryColor}20`,
                     color: player.belongingTeam.primaryColor,
                   }}
+                  title={`Belongs to ${player.belongingTeam.name}`}
                 >
                   <Shield className="w-3.5 h-3.5 shrink-0" />
-                  <span>Home Team: {player.belongingTeam.name}</span>
+                  <span>Home: {player.belongingTeam.name}</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800">
-                  <Shield className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                  <span>Team: Not Selected</span>
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-300 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-700/80">
+                  <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>Independent / Open Pool</span>
+                </span>
+              )}
+
+              {/* Bidding Freedom / Squad Status Badge */}
+              {player.status === 'SOLD' && player.teamPlayer?.team ? (
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border"
+                  style={{
+                    borderColor: `${player.teamPlayer.team.primaryColor}66`,
+                    backgroundColor: `${player.teamPlayer.team.primaryColor}25`,
+                    color: player.teamPlayer.team.primaryColor,
+                  }}
+                >
+                  Drafted by: {player.teamPlayer.team.name}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Open for bids by all teams
                 </span>
               )}
             </div>

@@ -50,6 +50,7 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSele
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [teamFilter, setTeamFilter] = useState('ALL');
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   // Teams list for LOV selection
@@ -181,6 +182,13 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSele
     if (roleFilter !== 'ALL' && p.role !== roleFilter) return false;
     if (categoryFilter !== 'ALL' && p.category !== categoryFilter) return false;
     if (statusFilter !== 'ALL' && p.status !== statusFilter) return false;
+    if (teamFilter !== 'ALL') {
+      if (teamFilter === 'NONE') {
+        if (p.belongingTeamId || p.belongingTeam) return false;
+      } else {
+        if (p.belongingTeamId !== teamFilter && p.belongingTeam?.id !== teamFilter) return false;
+      }
+    }
     return true;
   });
 
@@ -308,6 +316,21 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSele
             <option value="SOLD">Sold</option>
             <option value="UNSOLD">Unsold</option>
           </select>
+
+          {/* Belonging Team Filter */}
+          <select
+            value={teamFilter}
+            onChange={(e) => setTeamFilter(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+          >
+            <option value="ALL">All Belonging Teams</option>
+            <option value="NONE">Independent / Free Agents</option>
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} ({t.shortName})
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -399,22 +422,9 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSele
                     <div className="text-[10px] font-mono text-slate-500 mt-0.5 truncate">
                       Age {p.age} {p.place && `• ${p.place}`}
                     </div>
-                    {/* Team Name badge / Not Selected */}
+                    {/* Team Affiliation and Squad Status Badges */}
                     <div className="mt-1.5 flex flex-wrap gap-1">
-                      {p.status === 'SOLD' && p.teamPlayer?.team ? (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"
-                          style={{
-                            borderColor: `${p.teamPlayer.team.primaryColor}55`,
-                            backgroundColor: `${p.teamPlayer.team.primaryColor}20`,
-                            color: p.teamPlayer.team.primaryColor,
-                          }}
-                          title={`Sold to ${p.teamPlayer.team.name}`}
-                        >
-                          <Shield className="w-2.5 h-2.5 shrink-0" />
-                          <span className="truncate">Sold to: {p.teamPlayer.team.name}</span>
-                        </span>
-                      ) : p.belongingTeam ? (
+                      {p.belongingTeam ? (
                         <span
                           className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"
                           style={{
@@ -422,15 +432,30 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSele
                             backgroundColor: `${p.belongingTeam.primaryColor}20`,
                             color: p.belongingTeam.primaryColor,
                           }}
-                          title={`Belongs to ${p.belongingTeam.name}`}
+                          title={`Belongs to ${p.belongingTeam.name} (Can be bid on by any team)`}
                         >
                           <Shield className="w-2.5 h-2.5 shrink-0" />
-                          <span className="truncate">Belongs to: {p.belongingTeam.name}</span>
+                          <span className="truncate">Home: {p.belongingTeam.name}</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 font-medium">
                           <Shield className="w-2.5 h-2.5 text-slate-600" />
-                          <span>Team: Not Selected</span>
+                          <span>Independent</span>
+                        </span>
+                      )}
+
+                      {p.status === 'SOLD' && p.teamPlayer?.team && (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"
+                          style={{
+                            borderColor: `${p.teamPlayer.team.primaryColor}66`,
+                            backgroundColor: `${p.teamPlayer.team.primaryColor}30`,
+                            color: p.teamPlayer.team.primaryColor,
+                          }}
+                          title={`Won in auction by ${p.teamPlayer.team.name}`}
+                        >
+                          <Shield className="w-2.5 h-2.5 shrink-0" />
+                          <span className="truncate">Drafted: {p.teamPlayer.team.name}</span>
                         </span>
                       )}
                     </div>
@@ -883,7 +908,7 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSele
                 onChange={(e) => setNewPlayer({ ...newPlayer, teamId: e.target.value })}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
               >
-                <option value="">Not Selected (Open Auction Pool)</option>
+                <option value="">Not Selected (New Player / Yet to decide - Open Pool)</option>
                 {teams.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name} ({t.shortName})
@@ -895,10 +920,10 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSele
               {newPlayer.teamId ? (
                 <span className="text-amber-300 font-medium">
                   Player belongs to{' '}
-                  <strong>{teams.find((t) => t.id === newPlayer.teamId)?.name}</strong>. Player will enter the auction match and can be bid on by any team or assigned by Admin.
+                  <strong>{teams.find((t) => t.id === newPlayer.teamId)?.name}</strong>. All players are shuffled into the pool so that even though they belong to this team, they can be bid on and played by any other team!
                 </span>
               ) : (
-                <span>Not selected: Player belongs to no specific team (Open Auction Pool).</span>
+                <span>New player (not yet decided to add in a team). Shuffled into the pool and can be bid on and played by any team.</span>
               )}
             </p>
           </div>

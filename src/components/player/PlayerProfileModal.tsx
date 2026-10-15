@@ -87,7 +87,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({ playerId
                 <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800 col-span-2">
                   <span className="text-slate-500">Belongs to Team: </span>
                   <span className="text-amber-300 font-semibold">
-                    {player.belongingTeam?.name || 'Not Selected (Open Pool)'}
+                    {player.belongingTeam?.name
+                      ? `${player.belongingTeam.name} (Open for bids by all teams)`
+                      : 'Not Selected (Independent Talent / Open Pool)'}
                   </span>
                 </div>
               </div>
