@@ -27,7 +27,7 @@ interface PlayerEditModalProps {
   onClose: () => void;
   player: Player | null;
   teams: Team[];
-  onSuccess: () => void;
+  onSuccess: (updatedPlayer?: any) => void;
 }
 
 export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
@@ -170,8 +170,8 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         teamId: formData.teamId ? formData.teamId : null,
       };
 
-      await api.updatePlayer(player.id, payload);
-      onSuccess();
+      const updated = await api.updatePlayer(player.id, payload);
+      onSuccess(updated);
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to update cricketer.');

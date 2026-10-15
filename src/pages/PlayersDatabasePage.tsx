@@ -214,11 +214,15 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSele
           newPlayer.profileImage ||
           'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
       };
-      await api.createPlayer(payload);
+      const created = await api.createPlayer(payload);
+      if (created) {
+        setPlayers((prev) => [created, ...prev]);
+        useAuctionStore.getState().setPlayers([created, ...players]);
+      }
       setIsCreateModalOpen(false);
       setNewPlayer(initialNewPlayer);
       setCompressionInfo(null);
-      loadPlayers();
+      showToast('Player registered successfully!', 'success');
     } catch (err: any) {
       setCreateError(err.message || 'Failed to create player.');
     } finally {
@@ -232,11 +236,20 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSele
       return;
     }
     if (!window.confirm('Delete this player permanently? Only Admin has permission.')) return;
+    
+    // Instant optimistic update
+    const previousPlayers = [...players];
+    setPlayers((prev) => prev.filter((p) => p.id !== id));
+    useAuctionStore.getState().setPlayers(players.filter((p) => p.id !== id));
+    showToast('Player removed.', 'info');
+
     try {
       await api.deletePlayer(id);
-      loadPlayers();
     } catch (err: any) {
-      alert(err.message);
+      // Revert if delete failed
+      setPlayers(previousPlayers);
+      useAuctionStore.getState().setPlayers(previousPlayers);
+      alert(err.message || 'Failed to remove player.');
     }
   };
 
@@ -551,7 +564,15 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onSele
         }}
         player={playerToEdit}
         teams={teams}
-        onSuccess={loadPlayers}
+        onSuccess={(updated?: any) => {
+          if (updated && updated.id) {
+            setPlayers((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+            useAuctionStore.getState().setPlayers(players.map((p) => (p.id === updated.id ? updated : p)));
+          } else {
+            loadPlayers();
+          }
+          showToast('Player updated successfully!', 'success');
+        }}
       />
 
       {/* Admin Add Player Modal (Matches Public Player Registration) */}

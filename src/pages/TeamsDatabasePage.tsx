@@ -96,14 +96,18 @@ export const TeamsDatabasePage: React.FC = () => {
 
     if (!window.confirm(confirmMsg)) return;
 
+    // Optimistic UI update: instantly remove from list
+    const previousTeams = [...teams];
+    setTeams((prev) => prev.filter((t) => t.id !== team.id));
+    if (selectedTeamForDetails?.id === team.id) {
+      setSelectedTeamForDetails(null);
+    }
+    useAuctionStore.getState().showToast(`Team ${team.name} deleted.`, 'info');
+
     try {
       await api.deleteTeam(team.id);
-      if (selectedTeamForDetails?.id === team.id) {
-        setSelectedTeamForDetails(null);
-      }
-      loadTeams();
-      useAuctionStore.getState().initState();
     } catch (err: any) {
+      setTeams(previousTeams);
       alert(err.message || 'Failed to delete team.');
     }
   };

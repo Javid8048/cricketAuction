@@ -143,8 +143,8 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
         await api.createTeam(formData);
         showToast(`Team ${formData.name} created successfully!`, 'success');
       }
-      await initState();
       onClose();
+      initState().catch(() => {});
     } catch (err: any) {
       setApiError(err.message || 'Failed to save team details.');
     } finally {
