@@ -8,7 +8,6 @@ import {
   UserPlus,
   Key,
   Settings,
-  Star,
   Activity,
   Volume2,
   VolumeX,
@@ -310,19 +309,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <Settings className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>Auction Settings</span>
                 </button>
-
-                {onOpenIconModal && (
-                  <button
-                    onClick={() => {
-                      onOpenIconModal();
-                      onCloseMobile();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors"
-                  >
-                    <Star className="w-4 h-4 text-yellow-400 shrink-0" />
-                    <span>Icon Players (2 Max)</span>
-                  </button>
-                )}
               </div>
             )}
 

@@ -10,7 +10,6 @@ import {
   Server,
   History,
   Settings,
-  Star,
   UserPlus,
   Activity,
   Key,
@@ -269,15 +268,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Settings className="w-4 h-4 text-amber-400" />
               </button>
-              {onOpenIconModal && (
-                <button
-                  onClick={onOpenIconModal}
-                  title="Manage Icon Players"
-                  className="p-2 rounded-xl bg-slate-800/80 text-slate-300 hover:text-yellow-400 hover:bg-slate-700/80 transition-colors border border-slate-700/60"
-                >
-                  <Star className="w-4 h-4 text-yellow-400" />
-                </button>
-              )}
             </div>
           )}
 
