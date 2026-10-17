@@ -53,10 +53,10 @@ export const TeamDashboardPage: React.FC = () => {
   ].filter((d) => d.count > 0);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-8">
+    <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8">
       {/* Team Header Hero */}
       <div
-        className="p-6 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-6"
+        className="p-4 sm:p-6 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6"
         style={{
           backgroundColor: '#121724',
           borderColor: team.primaryColor + '60',

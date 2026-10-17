@@ -2,12 +2,34 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { Team } from '../types';
 import { formatRupees } from '../utils/currency';
-import { Users, Globe, Trophy, Shield, Plus, Edit2, Star, Phone, MapPin, Key, Lock, Check, Trash2, AlertTriangle } from 'lucide-react';
+import { exportToCsv } from '../utils/csvExport';
+import {
+  Users,
+  Globe,
+  Trophy,
+  Shield,
+  Plus,
+  Edit2,
+  Star,
+  Phone,
+  MapPin,
+  Key,
+  Lock,
+  Check,
+  Trash2,
+  AlertTriangle,
+  Download,
+  ExternalLink,
+  ChevronRight,
+  FileSpreadsheet,
+} from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { useAuctionStore } from '../store/auction.store';
 import { TeamFormModal } from '../components/admin/TeamFormModal';
 import { IconPlayerModal } from '../components/admin/IconPlayerModal';
 import { FranchiseCredentialsModal } from '../components/admin/FranchiseCredentialsModal';
+import { TeamDetailsModal } from '../components/admin/TeamDetailsModal';
+import { PlayerProfileModal } from '../components/player/PlayerProfileModal';
 
 export const TeamsDatabasePage: React.FC = () => {
   const { user } = useAuthStore();
@@ -27,13 +49,23 @@ export const TeamsDatabasePage: React.FC = () => {
   const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Team Details & Player Dossier Modals
+  const [selectedTeamForDetails, setSelectedTeamForDetails] = useState<Team | null>(null);
+  const [selectedPlayerIdForModal, setSelectedPlayerIdForModal] = useState<string | null>(null);
+
   const isAdmin = user?.role === 'ADMIN';
 
   const loadTeams = () => {
     setLoading(true);
     api
       .getTeams()
-      .then(setTeams)
+      .then((data) => {
+        setTeams(data);
+        if (selectedTeamForDetails) {
+          const fresh = data.find((t: Team) => t.id === selectedTeamForDetails.id);
+          if (fresh) setSelectedTeamForDetails(fresh);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
@@ -57,12 +89,19 @@ export const TeamsDatabasePage: React.FC = () => {
     setIsIconModalOpen(true);
   };
 
+  const handleDeleteTeam = (team: Team) => {
+    setTeamToDelete(team);
+  };
+
   const handleConfirmDeleteSingle = async () => {
     if (!teamToDelete) return;
     setIsDeleting(true);
     try {
       await deleteTeam(teamToDelete.id);
       setTeamToDelete(null);
+      if (selectedTeamForDetails?.id === teamToDelete.id) {
+        setSelectedTeamForDetails(null);
+      }
       loadTeams();
     } catch (err: any) {
       showToast(err.message || 'Failed to delete team.', 'error');
@@ -76,6 +115,9 @@ export const TeamsDatabasePage: React.FC = () => {
     try {
       await deleteAllTeams();
       setIsDeleteAllModalOpen(false);
+      if (selectedTeamForDetails) {
+        setSelectedTeamForDetails(null);
+      }
       loadTeams();
     } catch (err: any) {
       showToast(err.message || 'Failed to delete all teams.', 'error');
@@ -84,54 +126,238 @@ export const TeamsDatabasePage: React.FC = () => {
     }
   };
 
+  // CSV Export: All Teams Summary
+  const handleExportTeamsList = () => {
+    if (teams.length === 0) {
+      alert('No teams registered yet.');
+      return;
+    }
+
+    const headers = [
+      'Team Name',
+      'Short Code',
+      'Owner Name',
+      'Phone Number',
+      'Location / Address',
+      'Total Purse (INR)',
+      'Remaining Purse (INR)',
+      'Spent Purse (INR)',
+      'Current Squad Size',
+      'Max Squad Size',
+      'Icon Players Count',
+      'Overseas Players Count',
+      'Batters Count',
+      'Bowlers Count',
+      'All-Rounders Count',
+      'Wicketkeepers Count',
+    ];
+
+    const rows = teams.map((t) => {
+      const squad = t.squad || [];
+      const iconCount = squad.filter((sp) => sp.isIcon || sp.player?.isIcon).length;
+      const overseasCount = squad.filter((sp) => sp.player?.isOverseas).length;
+      const batters = squad.filter((sp) => sp.player?.role === 'Batter').length;
+      const bowlers = squad.filter((sp) => sp.player?.role === 'Bowler').length;
+      const allRounders = squad.filter((sp) => sp.player?.role === 'All-Rounder').length;
+      const wicketkeepers = squad.filter((sp) => sp.player?.role === 'Wicketkeeper').length;
+      const totalSpent = t.totalPurse - t.remainingPurse;
+
+      return [
+        t.name,
+        t.shortName,
+        t.ownerName || '',
+        t.phone || '',
+        t.address || '',
+        t.totalPurse,
+        t.remainingPurse,
+        totalSpent,
+        squad.length,
+        t.maxSquadSize || 12,
+        iconCount,
+        overseasCount,
+        batters,
+        bowlers,
+        allRounders,
+        wicketkeepers,
+      ];
+    });
+
+    exportToCsv('cricket_auction_teams_summary.csv', headers, rows);
+  };
+
+  // CSV Export: Single Team Squad Roster
+  const handleExportTeamRoster = (team: Team) => {
+    const squad = team.squad || [];
+    if (squad.length === 0) {
+      alert(`Team "${team.name}" does not have any players in their squad yet.`);
+      return;
+    }
+
+    const headers = [
+      'Team Name',
+      'Player S.No',
+      'Player Name',
+      'Role',
+      'Category',
+      'Is Icon Player',
+      'Batting Style',
+      'Bowling Style',
+      'Native Place',
+      'Country',
+      'Base Price (INR)',
+      'Purchased Price (INR)',
+    ];
+
+    const rows = squad.map((sp) => {
+      const p = sp.player;
+      return [
+        team.name,
+        p?.sNo || '—',
+        p?.name || 'Unknown',
+        p?.role || '—',
+        p?.category || '—',
+        sp.isIcon || p?.isIcon ? 'YES' : 'NO',
+        p?.battingStyle || '—',
+        p?.bowlingStyle || '—',
+        p?.place || '—',
+        p?.country || 'India',
+        p?.basePrice || 100,
+        sp.price || p?.currentPrice || 100,
+      ];
+    });
+
+    const safeFilename = `${team.shortName || team.name}_squad_roster.csv`.replace(/\s+/g, '_');
+    exportToCsv(safeFilename, headers, rows);
+  };
+
+  // CSV Export: All Teams Roster Combined
+  const handleExportAllRosters = () => {
+    const allSquadRows: any[] = [];
+
+    teams.forEach((team) => {
+      const squad = team.squad || [];
+      squad.forEach((sp) => {
+        const p = sp.player;
+        allSquadRows.push([
+          team.name,
+          team.shortName,
+          p?.sNo || '—',
+          p?.name || 'Unknown',
+          p?.role || '—',
+          p?.category || '—',
+          sp.isIcon || p?.isIcon ? 'YES' : 'NO',
+          p?.battingStyle || '—',
+          p?.bowlingStyle || '—',
+          p?.place || '—',
+          p?.country || 'India',
+          p?.basePrice || 100,
+          sp.price || p?.currentPrice || 100,
+        ]);
+      });
+    });
+
+    if (allSquadRows.length === 0) {
+      alert('No rostered players across any teams yet.');
+      return;
+    }
+
+    const headers = [
+      'Team Name',
+      'Team Code',
+      'Player S.No',
+      'Player Name',
+      'Role',
+      'Category',
+      'Is Icon Player',
+      'Batting Style',
+      'Bowling Style',
+      'Native Place',
+      'Country',
+      'Base Price (INR)',
+      'Sold Price (INR)',
+    ];
+
+    exportToCsv('all_teams_players_roster.csv', headers, allSquadRows);
+  };
+
   if (loading) {
     return <div className="max-w-7xl mx-auto px-6 py-12 text-center text-slate-400">Loading teams...</div>;
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white font-display">
+          <h1 className="text-xl sm:text-3xl font-black text-white font-display">
             PARTICIPATING TEAMS ({teams.length})
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Registered teams competing with purse limit ₹15,000 and max 12 members squad.
+            Registered tournament teams competing with purse ₹15,000 and max 12 squad members. Click any team to inspect details and roster.
           </p>
         </div>
 
-        {isAdmin && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {teams.length > 0 && (
+        {/* Global Header Actions: CSV Downloads & Admin Tools */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Download Team List CSV */}
+          <button
+            type="button"
+            onClick={handleExportTeamsList}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-200 font-bold text-xs transition-colors shadow-sm"
+            title="Download Teams Summary CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Download Teams CSV</span>
+          </button>
+
+          {/* Download All Rosters CSV */}
+          <button
+            type="button"
+            onClick={handleExportAllRosters}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-200 font-bold text-xs transition-colors shadow-sm"
+            title="Download All Team Rosters Combined CSV"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Download All Rosters</span>
+          </button>
+
+          {isAdmin && (
+            <>
+              {teams.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteAllModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 font-bold text-xs transition-colors shadow-sm"
+                  title="Delete all participating teams"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Delete All Teams</span>
+                </button>
+              )}
+
               <button
-                onClick={() => setIsDeleteAllModalOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 font-bold text-xs transition-colors shadow-sm"
-                title="Delete all participating teams"
+                type="button"
+                onClick={() => setIsCredentialsModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs transition-colors shadow-sm"
               >
-                <Trash2 className="w-4 h-4 text-rose-400" />
-                <span>Delete All Teams</span>
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                <span>Logins Table</span>
               </button>
-            )}
 
-            <button
-              onClick={() => setIsCredentialsModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs transition-colors shadow-sm"
-            >
-              <Key className="w-4 h-4 text-amber-400" />
-              <span>Team Logins Table</span>
-            </button>
-
-            <button
-              onClick={handleOpenAddTeam}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-transform active:scale-95 shadow-md shadow-amber-500/20"
-            >
-              <Plus className="w-4 h-4" />
-              Add New Team
-            </button>
-          </div>
-        )}
+              <button
+                type="button"
+                onClick={handleOpenAddTeam}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-transform active:scale-95 shadow-md shadow-amber-500/20"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Team</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
+      {/* Empty State */}
       {teams.length === 0 ? (
         <div className="bg-[#121724] border border-slate-800 rounded-3xl p-12 text-center max-w-xl mx-auto shadow-xl">
           <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 text-amber-400">
@@ -152,6 +378,7 @@ export const TeamsDatabasePage: React.FC = () => {
           )}
         </div>
       ) : (
+        /* Team Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {teams.map((t) => {
             const pursePercent = Math.max(0, Math.min(100, (t.remainingPurse / t.totalPurse) * 100));
@@ -160,7 +387,8 @@ export const TeamsDatabasePage: React.FC = () => {
             return (
               <div
                 key={t.id}
-                className="bg-[#121724] border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-slate-700 transition-all"
+                onClick={() => setSelectedTeamForDetails(t)}
+                className="bg-[#121724] border border-slate-800 hover:border-amber-500/50 rounded-2xl p-5 flex flex-col justify-between shadow-xl relative overflow-hidden group transition-all cursor-pointer hover:shadow-2xl hover:shadow-amber-500/5 hover:-translate-y-0.5"
               >
                 {/* Team Accent Top Bar */}
                 <div
@@ -169,20 +397,21 @@ export const TeamsDatabasePage: React.FC = () => {
                 />
 
                 <div>
-                  <div className="flex items-center justify-between gap-3 mb-4">
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between gap-2 mb-4">
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-base text-white shadow-lg border border-white/20 shrink-0"
+                        className="w-12 h-12 rounded-xl flex items-center justify-center font-black font-display text-white text-lg shadow-md group-hover:scale-105 transition-transform"
                         style={{ backgroundColor: t.primaryColor }}
                       >
-                        {t.shortName || t.name.slice(0, 2).toUpperCase()}
+                        {t.shortName}
                       </div>
                       <div>
-                        <h2 className="text-base font-bold text-white leading-tight">{t.name}</h2>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
-                            {t.shortName}
-                          </span>
+                        <h3 className="font-bold text-white text-base leading-tight group-hover:text-amber-400 transition-colors">
+                          {t.name}
+                        </h3>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] font-mono text-slate-400">{t.shortName}</span>
                           {iconCount > 0 && (
                             <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 flex items-center gap-0.5">
                               <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
@@ -193,24 +422,45 @@ export const TeamsDatabasePage: React.FC = () => {
                       </div>
                     </div>
 
-                    {isAdmin && (
-                      <div className="flex items-center gap-1 shrink-0">
+                    {/* Quick Action Buttons on Card Top */}
+                    <div
+                      className="flex items-center gap-1 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Quick Download Team Players CSV */}
+                      <button
+                        type="button"
+                        onClick={() => handleExportTeamRoster(t)}
+                        className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-colors"
+                        title="Download Team Players CSV"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Admin Edit Team */}
+                      {isAdmin && (
                         <button
+                          type="button"
                           onClick={() => handleEditTeam(t)}
-                          className="p-1.5 rounded-lg bg-slate-800/80 text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+                          className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors"
                           title="Edit team details"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
+                      )}
+
+                      {/* Admin Delete Team */}
+                      {isAdmin && (
                         <button
-                          onClick={() => setTeamToDelete(t)}
-                          className="p-1.5 rounded-lg bg-slate-800/80 text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 transition-colors"
+                          type="button"
+                          onClick={() => handleDeleteTeam(t)}
+                          className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
                           title={`Delete ${t.name}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
 
                   {/* Owner & Contact Details */}
@@ -218,7 +468,7 @@ export const TeamsDatabasePage: React.FC = () => {
                     {t.ownerName && (
                       <div className="text-slate-300 font-medium flex items-center justify-between">
                         <span className="text-slate-500 text-[11px]">Owner:</span>
-                        <span>{t.ownerName}</span>
+                        <span className="truncate ml-1">{t.ownerName}</span>
                       </div>
                     )}
                     {t.phone && (
@@ -227,146 +477,143 @@ export const TeamsDatabasePage: React.FC = () => {
                         <span>{t.phone}</span>
                       </div>
                     )}
-                    {isAdmin && t.loginUsername && (
-                      <div className="text-cyan-400 text-[11px] font-mono flex items-center justify-between pt-1 border-t border-slate-800/80">
-                        <span className="text-slate-500 flex items-center gap-1">
-                          <Key className="w-3 h-3 text-amber-400" /> Login:
-                        </span>
-                        <span className="bg-cyan-950/50 px-1.5 py-0.2 rounded border border-cyan-800/40">
-                          {t.loginUsername}
-                        </span>
+                    {t.address && (
+                      <div className="text-slate-400 text-[11px] flex items-center justify-between">
+                        <span className="text-slate-500">Location:</span>
+                        <span className="truncate ml-1">{t.address}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Purse Tracker */}
+                  {/* Purse Progress Bar */}
                   <div className="space-y-1.5 mb-4">
-                    <div className="flex items-center justify-between text-xs">
+                    <div className="flex justify-between items-baseline text-xs">
                       <span className="text-slate-400">Remaining Purse</span>
-                      <span className="font-mono font-bold text-amber-400">
+                      <span className="font-bold text-amber-400 font-mono text-sm">
                         {formatRupees(t.remainingPurse)}
                       </span>
                     </div>
 
-                    <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                    <div className="w-full bg-slate-800/80 rounded-full h-2 overflow-hidden border border-slate-700/50">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${pursePercent}%`,
-                          backgroundColor:
-                            pursePercent > 50
-                              ? '#10b981'
-                              : pursePercent > 20
-                              ? '#f59e0b'
-                              : '#ef4444',
+                          backgroundColor: pursePercent > 20 ? t.primaryColor : '#EF4444',
                         }}
                       />
                     </div>
+
                     <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                      <span>Spent: {formatRupees(t.totalPurse - t.remainingPurse)}</span>
                       <span>Total: {formatRupees(t.totalPurse)}</span>
-                      <span>{pursePercent.toFixed(0)}% Left</span>
                     </div>
                   </div>
 
-                  {/* Squad Stats */}
+                  {/* Squad Stats Grid */}
                   <div className="grid grid-cols-2 gap-2 text-xs mb-4">
-                    <div className="p-2 rounded-lg bg-slate-900/50 border border-slate-800/60 flex items-center gap-2">
-                      <Users className="w-3.5 h-3.5 text-slate-500" />
-                      <div className="flex items-baseline justify-between w-full">
-                        <span className="text-slate-400 text-[11px]">Squad</span>
-                        <span className="font-mono font-bold text-white">
-                          {t.squad?.length || 0} / {t.maxSquadSize || 12}
-                        </span>
+                    <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/60 flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5 text-amber-400" />
+                      <div>
+                        <div className="text-[10px] text-slate-500">Squad</div>
+                        <div className="font-bold text-white font-mono">
+                          {t.squadSize || t.squad?.length || 0} / {t.maxSquadSize || 12}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="p-2 rounded-lg bg-slate-900/50 border border-slate-800/60 flex items-center gap-2">
-                      <Globe className="w-3.5 h-3.5 text-slate-500" />
-                      <div className="flex items-baseline justify-between w-full">
-                        <span className="text-slate-400 text-[11px]">Icons</span>
-                        <span className="font-mono font-bold text-amber-400">
-                          {iconCount} / 2
-                        </span>
+                    <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/60 flex items-center gap-2">
+                      <Globe className="w-3.5 h-3.5 text-blue-400" />
+                      <div>
+                        <div className="text-[10px] text-slate-500">Overseas</div>
+                        <div className="font-bold text-white font-mono">
+                          {t.overseasCount || 0} / {t.maxOverseas || 4}
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Squad Roster Preview */}
-                  <div className="space-y-1.5 border-t border-slate-800/80 pt-3">
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <span className="font-semibold uppercase tracking-wider text-[10px]">
-                        Roster ({t.squad?.length || 0})
-                      </span>
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleManageIcons(t.id)}
-                          className="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1"
-                        >
-                          <Star className="w-3 h-3 fill-amber-400" />
-                          <span>Manage Icons</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {t.squad && t.squad.length > 0 ? (
-                      <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                        {t.squad.map((sp: any) => {
-                          const isIconPlayer = sp.isIcon || sp.player?.isIcon;
-                          return (
-                            <div
-                              key={sp.id}
-                              className={`flex items-center justify-between px-2 py-1 rounded text-[11px] ${
-                                isIconPlayer
-                                  ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-200'
-                                  : 'bg-slate-900/40 text-slate-300'
-                              }`}
-                            >
-                              <span className="truncate flex items-center gap-1">
-                                {isIconPlayer && (
-                                  <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400 shrink-0" />
-                                )}
-                                {sp.player?.name}
-                              </span>
-                              <span className="font-mono text-amber-400 font-bold shrink-0 ml-1">
-                                {formatRupees(sp.price)}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="text-[11px] text-slate-600 italic py-1">No players signed yet.</div>
-                    )}
+                  {/* Role composition */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 px-2 py-1.5 rounded-lg bg-slate-950/40 border border-slate-800/40 font-mono">
+                    <span>🏏 {t.batters || 0} Bat</span>
+                    <span>⚾ {t.bowlers || 0} Bowl</span>
+                    <span>⚡ {t.allRounders || 0} AR</span>
+                    <span>🧤 {t.wicketkeepers || 0} WK</span>
                   </div>
                 </div>
 
-                {/* Admin Quick Action Button on Footer of Card */}
-                {isAdmin && (
-                  <div className="pt-3 border-t border-slate-800 flex items-center gap-2">
+                {/* Card Footer Actions */}
+                <div
+                  className="pt-3 border-t border-slate-800 flex items-center gap-2 mt-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTeamForDetails(t)}
+                    className="flex-1 py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <Users className="w-3 h-3 text-amber-400" />
+                    <span>View Roster</span>
+                  </button>
+
+                  {isAdmin && (
                     <button
+                      type="button"
                       onClick={() => handleManageIcons(t.id)}
-                      className="flex-1 py-1.5 px-2 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                      className="py-1.5 px-2.5 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                      title="Assign Icon Player"
                     >
                       <Star className="w-3 h-3" />
-                      <span>Assign Icon (₹2,500)</span>
+                      <span>Icon</span>
                     </button>
+                  )}
+
+                  {isAdmin && (
                     <button
-                      onClick={() => setTeamToDelete(t)}
+                      type="button"
+                      onClick={() => handleDeleteTeam(t)}
                       className="py-1.5 px-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
                       title={`Delete ${t.name}`}
                     >
                       <Trash2 className="w-3 h-3 text-rose-400" />
                       <span>Delete</span>
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Admin Team Form Modal (Create or Edit) */}
+      {/* Team Details & Full Players Roster Modal */}
+      <TeamDetailsModal
+        isOpen={!!selectedTeamForDetails}
+        onClose={() => setSelectedTeamForDetails(null)}
+        team={selectedTeamForDetails}
+        isAdmin={isAdmin}
+        onEditTeam={(team) => {
+          setSelectedTeamForDetails(null);
+          handleEditTeam(team);
+        }}
+        onDeleteTeam={(team) => {
+          handleDeleteTeam(team);
+        }}
+        onManageIcons={(teamId) => {
+          handleManageIcons(teamId);
+        }}
+        onSelectPlayer={(playerId) => {
+          setSelectedPlayerIdForModal(playerId);
+        }}
+      />
+
+      {/* Player Profile Dossier Modal (Triggerable from inside Team Details) */}
+      <PlayerProfileModal
+        playerId={selectedPlayerIdForModal}
+        onClose={() => setSelectedPlayerIdForModal(null)}
+      />
+
+      {/* Add / Edit Team Modal */}
       <TeamFormModal
         isOpen={isTeamModalOpen}
         onClose={() => {
@@ -376,7 +623,7 @@ export const TeamsDatabasePage: React.FC = () => {
         teamToEdit={teamToEdit}
       />
 
-      {/* Admin Icon Player Modal */}
+      {/* Icon Players Assignment Modal */}
       <IconPlayerModal
         isOpen={isIconModalOpen}
         onClose={() => {
@@ -386,7 +633,7 @@ export const TeamsDatabasePage: React.FC = () => {
         selectedTeamId={selectedTeamIdForIcons}
       />
 
-      {/* Admin Franchise Credentials Table Modal */}
+      {/* Admin Team Credentials Table Modal */}
       <FranchiseCredentialsModal
         isOpen={isCredentialsModalOpen}
         onClose={() => {

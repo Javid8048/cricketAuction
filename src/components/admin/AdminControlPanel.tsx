@@ -14,6 +14,7 @@ import {
   UserCheck,
   IndianRupee,
   AlertTriangle,
+  Shuffle,
 } from 'lucide-react';
 import { useAuctionStore } from '../../store/auction.store';
 import { api } from '../../services/api';
@@ -436,6 +437,23 @@ export const AdminControlPanel: React.FC = () => {
           >
             <RefreshCw className="w-5 h-5 text-blue-400" />
             <span>RE-AUCTION UNSOLD</span>
+          </button>
+
+          {/* SHUFFLE AUCTION POOL */}
+          <button
+            onClick={() =>
+              handleAction(
+                'shuffle',
+                () => api.shuffleAuctionPool(),
+                'Shuffle upcoming auction pool? All remaining players will be randomized in order so players from all teams are mixed.'
+              )
+            }
+            disabled={loadingAction}
+            className="p-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all shadow-md active:scale-95 disabled:opacity-40"
+            title="Randomly shuffle all upcoming players in the auction pool so players belonging to any team are thoroughly mixed"
+          >
+            <Shuffle className="w-5 h-5 text-indigo-400" />
+            <span>SHUFFLE POOL</span>
           </button>
 
           {/* RESET AUCTION */}

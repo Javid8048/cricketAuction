@@ -1,7 +1,10 @@
 import React from 'react';
-import { Globe, Award, Shield, Zap, Target, Flame, Info, Star, MapPin, Calendar } from 'lucide-react';
+import { Globe, Award, Shield, Zap, Target, Flame, Info, Star, MapPin, Calendar, RefreshCw } from 'lucide-react';
 import { Player } from '../../types';
 import { formatRupees } from '../../utils/currency';
+import { useAuctionStore } from '../../store/auction.store';
+import { useAuthStore } from '../../store/auth.store';
+import { api } from '../../services/api';
 
 interface PlayerCardProps {
   player: Player | null;
@@ -9,9 +12,15 @@ interface PlayerCardProps {
 }
 
 export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile }) => {
+  const { state, showToast } = useAuctionStore();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
+
   if (!player) {
+    const unsoldPlayers = state?.players?.filter((p) => p.status === 'UNSOLD') || [];
+
     return (
-      <div className="bg-[#121724]/90 border border-slate-800 rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[480px]">
+      <div className="bg-[#121724]/90 border border-slate-800 rounded-2xl p-6 sm:p-8 text-center flex flex-col items-center justify-center min-h-[480px]">
         <div className="w-20 h-20 rounded-full bg-slate-800/80 flex items-center justify-center text-slate-500 mb-4">
           <Award className="w-10 h-10" />
         </div>
@@ -19,6 +28,31 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
         <p className="text-sm text-slate-500 mt-2 max-w-xs">
           Auction is currently waiting for the admin to introduce the next player lot.
         </p>
+
+        {unsoldPlayers.length > 0 && isAdmin && (
+          <div className="mt-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 max-w-xs w-full animate-in fade-in">
+            <span className="text-xs text-rose-300 font-bold block mb-1">
+              ⚠️ {unsoldPlayers.length} Unsold Player{unsoldPlayers.length > 1 ? 's' : ''} in Catalog
+            </span>
+            <p className="text-[11px] text-slate-400 mb-3">
+              You can start round 2 for all unsold players or pick one to bid.
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  await api.reauctionUnsold();
+                  showToast('Round 2 initiated! Unsold players are now on the block.', 'success');
+                } catch (err: any) {
+                  showToast(err.message || 'Failed to re-auction unsold players', 'error');
+                }
+              }}
+              className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/20 active:scale-95 transition-all"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Start BID for Unsold ({unsoldPlayers.length})</span>
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -65,13 +99,13 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
       </div>
 
       {/* Player Image & Name Hero */}
-      <div className="p-6 relative">
-        <div className="flex items-center gap-5">
+      <div className="p-4 sm:p-6 relative">
+        <div className="flex items-center gap-3.5 sm:gap-5">
           <div className="relative group shrink-0">
             <img
               src={player.profileImage}
               alt={player.name}
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-amber-500/40 shadow-xl shadow-black/60 group-hover:scale-105 transition-transform"
+              className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-amber-500/40 shadow-xl shadow-black/60 group-hover:scale-105 transition-transform"
               onError={(e) => {
                 // Fallback avatar
                 (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${player.name}`;
@@ -84,7 +118,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-white font-display truncate">
+              <h2 className="text-lg sm:text-2xl font-black text-white font-display truncate">
                 {player.name}
               </h2>
             </div>
@@ -124,6 +158,48 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
                 <span className="text-slate-500">Bowl:</span>
                 <span className="text-slate-300 font-medium">{player.bowlingStyle}</span>
               </div>
+            </div>
+
+            {/* Belonging Team & Bidding Freedom Badge */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+              {player.belongingTeam ? (
+                <span
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border shadow-sm"
+                  style={{
+                    borderColor: `${player.belongingTeam.primaryColor}55`,
+                    backgroundColor: `${player.belongingTeam.primaryColor}20`,
+                    color: player.belongingTeam.primaryColor,
+                  }}
+                  title={`Belongs to ${player.belongingTeam.name}`}
+                >
+                  <Shield className="w-3.5 h-3.5 shrink-0" />
+                  <span>Home: {player.belongingTeam.name}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-300 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-700/80">
+                  <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>Independent / Open Pool</span>
+                </span>
+              )}
+
+              {/* Bidding Freedom / Squad Status Badge */}
+              {player.status === 'SOLD' && player.teamPlayer?.team ? (
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border"
+                  style={{
+                    borderColor: `${player.teamPlayer.team.primaryColor}66`,
+                    backgroundColor: `${player.teamPlayer.team.primaryColor}25`,
+                    color: player.teamPlayer.team.primaryColor,
+                  }}
+                >
+                  Drafted by: {player.teamPlayer.team.name}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Open for bids by all teams
+                </span>
+              )}
             </div>
           </div>
         </div>

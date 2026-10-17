@@ -163,8 +163,8 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
         await api.createTeam(formData);
         showToast(`Team ${formData.name} created successfully!`, 'success');
       }
-      await initState();
       onClose();
+      initState().catch(() => {});
     } catch (err: any) {
       setApiError(err.message || 'Failed to save team details.');
     } finally {
@@ -173,8 +173,8 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-lg p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 my-8">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-lg p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 my-4 sm:my-8">
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">

@@ -14,8 +14,10 @@ import {
   AlertCircle,
   FileCheck,
   RotateCcw,
+  Shield,
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { Team } from '../../types';
 import { useAuctionStore } from '../../store/auction.store';
 import { formatRupees } from '../../utils/currency';
 import { compressImageFile, formatBytes, CompressionResult } from '../../utils/imageCompressor';
@@ -37,8 +39,10 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
     bowlingStyle: 'Right-arm medium',
     basePrice: 100,
     profileImage: '',
+    teamId: '',
   });
 
+  const [teams, setTeams] = useState<Team[]>([]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [compressionInfo, setCompressionInfo] = useState<CompressionResult | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
@@ -53,11 +57,17 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch current player count to show next S.No
+  // Fetch current player count to show next S.No and fetch teams for LOV
   useEffect(() => {
-    async function fetchNextSNo() {
+    async function initData() {
       try {
-        const players = await api.getPlayers();
+        const [players, teamsData] = await Promise.all([
+          api.getPlayers(),
+          api.getTeams().catch(() => []),
+        ]);
+        if (Array.isArray(teamsData)) {
+          setTeams(teamsData);
+        }
         if (Array.isArray(players) && players.length > 0) {
           const maxSNo = Math.max(...players.map((p) => p.sNo || 0));
           setEstimatedSNo(maxSNo + 1);
@@ -68,7 +78,7 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
         setEstimatedSNo(1);
       }
     }
-    fetchNextSNo();
+    initData();
   }, []);
 
   // Form Validation
@@ -215,11 +225,13 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
         battingStyle: formData.battingStyle,
         bowlingStyle: formData.bowlingStyle,
         basePrice: 100,
+        teamId: formData.teamId || undefined,
         profileImage: finalImage,
       };
 
       const res = await api.registerPlayerPublic(payload);
       setRegisteredPlayer(res.player);
+      // Refresh auction store so player pool count in menu updates immediately
       useAuctionStore.getState().refreshPlayers();
     } catch (err: any) {
       setApiError(err.message || 'Failed to submit registration. Please try again.');
@@ -292,6 +304,24 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
                   {formatRupees(registeredPlayer.basePrice)}
                 </span>
               </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Belongs to Team:</span>
+                <span className="font-semibold text-white">
+                  {registeredPlayer.belongingTeam?.name ? (
+                    <span className="text-amber-300 font-bold">
+                      {registeredPlayer.belongingTeam.name}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">Not Selected</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Auction Status:</span>
+                <span className="text-emerald-400 font-semibold">
+                  In Auction Pool (Ready for Bidding)
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -310,6 +340,7 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
                     bowlingStyle: 'Right-arm medium',
                     basePrice: 100,
                     profileImage: '',
+                    teamId: '',
                   });
                   setCompressionInfo(null);
                   setTouched({});
@@ -331,12 +362,12 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
           </div>
         ) : (
           /* Registration Form */
-          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-md">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl backdrop-blur-md">
             {/* Header */}
-            <div className="mb-6 pb-4 border-b border-slate-800">
+            <div className="mb-5 sm:mb-6 pb-3 sm:pb-4 border-b border-slate-800">
               <div className="flex items-center justify-between gap-3 mb-1">
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                  <User className="w-6 h-6 text-amber-400" />
+                <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                  <User className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
                   Player Registration
                 </h1>
                 <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-mono font-bold border border-amber-500/30">
@@ -678,6 +709,45 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
                     <option value="None">None (Pure Batter)</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Belonging Team LOV (Optional) */}
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-300 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-white">
+                    <Shield className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Belonging Team (Optional)</span>
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-normal">
+                    Not mandatory
+                  </span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={formData.teamId}
+                    onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="">Not Selected (New Player / Yet to decide - Independent Pool)</option>
+                    {teams.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.shortName})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  {formData.teamId ? (
+                    <span className="text-amber-300 font-medium">
+                      You belong to{' '}
+                      <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong>. In the auction, players are shuffled into the pool so that even though you belong to this team, you can be bid on and played by any other team!
+                    </span>
+                  ) : (
+                    <span>
+                      Independent / New talent (yet to be decided to add in a team). You will be shuffled into the auction pool and can be bid on by any team.
+                    </span>
+                  )}
+                </p>
               </div>
 
               {/* Base Price Note */}

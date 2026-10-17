@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User } from '../types';
 import { api } from '../services/api';
+import { socketService } from '../services/socket';
 
 interface AuthState {
   user: User | null;
@@ -52,6 +53,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const data = await api.login(email, pass);
       sessionStorage.setItem('caa_token', data.token);
       sessionStorage.setItem('caa_user', JSON.stringify(data.user));
+      socketService.authenticate(data.token);
       set({
         user: data.user,
         token: data.token,
@@ -71,6 +73,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const data = await api.login(email, pass);
       sessionStorage.setItem('caa_token', data.token);
       sessionStorage.setItem('caa_user', JSON.stringify(data.user));
+      socketService.authenticate(data.token);
       set({
         user: data.user,
         token: data.token,

@@ -1,21 +1,23 @@
-import React from 'react';
-import { Play, Pause, FastForward, CheckCircle, XCircle, RotateCcw, ShieldAlert, Wifi } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, Pause, FastForward, CheckCircle, XCircle, RotateCcw, ShieldAlert, Wifi, Gavel, Clock, Eye } from 'lucide-react';
 import { useAuctionStore } from '../../store/auction.store';
 import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../services/api';
+import { ManualSellModal } from '../admin/ManualSellModal';
 
 export const LiveBroadcastHeader: React.FC = () => {
   const { state, isStandaloneMode, adminActionStandalone } = useAuctionStore();
   const { user } = useAuthStore();
+  const [isManualSellOpen, setIsManualSellOpen] = useState(false);
 
   const auction = state?.auction;
   const isAdmin = user?.role === 'ADMIN';
 
-  const handleAction = async (actionName: string, confirmMsg?: string) => {
+  const handleAction = async (actionName: string, confirmMsg?: string, payload?: any) => {
     if (confirmMsg && !window.confirm(confirmMsg)) return;
     try {
       if (isStandaloneMode) {
-        await adminActionStandalone(actionName);
+        await adminActionStandalone(actionName, payload);
       } else {
         if (actionName === 'pause') await api.pauseAuction();
         else if (actionName === 'resume' || actionName === 'start') await api.startAuction();
@@ -23,17 +25,26 @@ export const LiveBroadcastHeader: React.FC = () => {
         else if (actionName === 'unsold') await api.markUnsold();
         else if (actionName === 'next') await api.nextPlayer();
         else if (actionName === 'reset') await api.resetAuction();
+        else if (actionName === 'toggle_timer') {
+          const nextEnabled = auction?.timerEnabled === false ? true : false;
+          await api.updateAuctionSettings({ timerEnabled: nextEnabled });
+        }
       }
     } catch (e: any) {
       alert(e.message);
     }
   };
 
+  const handleToggleTimer = () => {
+    const nextEnabled = auction?.timerEnabled === false ? true : false;
+    handleAction('toggle_timer', undefined, { timerEnabled: nextEnabled });
+  };
+
   return (
-    <div className="bg-[#121724]/90 border border-slate-800/80 rounded-2xl p-4 shadow-xl mb-4 backdrop-blur-md">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+    <div className="bg-[#121724]/90 border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-xl mb-3 sm:mb-4 backdrop-blur-md">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
         {/* Left: Tournament Badge & Round */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="flex h-3 w-3 relative">
               <span
@@ -64,7 +75,7 @@ export const LiveBroadcastHeader: React.FC = () => {
 
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-extrabold text-white font-display tracking-wide">
+              <h1 className="text-sm sm:text-lg font-extrabold text-white font-display tracking-wide">
                 {auction?.name || 'PREMIER CRICKET MEGA AUCTION 2026'}
               </h1>
               {isStandaloneMode && (
@@ -90,12 +101,27 @@ export const LiveBroadcastHeader: React.FC = () => {
 
         {/* Right: Admin Quick Action Strip */}
         {isAdmin && (
-          <div className="flex flex-wrap items-center gap-2 bg-[#171f30] px-3 py-2 rounded-xl border border-amber-500/30">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 bg-[#171f30] p-2 sm:px-3 sm:py-2 rounded-xl border border-amber-500/30 w-full md:w-auto">
             <div className="flex items-center gap-1 text-[11px] font-bold text-amber-400 uppercase tracking-wider mr-1">
               <ShieldAlert className="w-3.5 h-3.5" />
               <span>Admin:</span>
             </div>
 
+            {/* Quick Timer ON/OFF Button */}
+            <button
+              onClick={handleToggleTimer}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-mono font-bold transition-colors ${
+                auction?.timerEnabled !== false
+                  ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+              }`}
+              title="Click to toggle Timer ON/OFF (Manual Mode)"
+            >
+              <Clock className="w-3 h-3" />
+              <span>{auction?.timerEnabled !== false ? 'Timer: ON' : 'Timer: OFF'}</span>
+            </button>
+
+            {/* Play/Pause */}
             {auction?.status === 'ACTIVE' ? (
               <button
                 onClick={() => handleAction('pause')}
@@ -116,33 +142,65 @@ export const LiveBroadcastHeader: React.FC = () => {
               </button>
             )}
 
+            {/* Manual Sell to Team Modal Trigger */}
+            <button
+              onClick={() => setIsManualSellOpen(true)}
+              disabled={auction?.status !== 'ACTIVE' || !auction?.activePlayerId}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-gradient-to-r from-amber-500/25 to-emerald-600/30 text-emerald-200 hover:bg-emerald-600/50 text-xs font-bold border border-emerald-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Directly sell player to any selected team"
+            >
+              <Gavel className="w-3 h-3 text-emerald-300" />
+              Manual Sell
+            </button>
+
+            {/* Sold to highest bidder */}
             <button
               onClick={() => handleAction('sell', 'Sell current player to highest bidder?')}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-600/30 text-emerald-200 hover:bg-emerald-600/50 text-xs font-semibold transition-colors"
-              title="Confirm Sold"
+              disabled={auction?.status !== 'ACTIVE' || !auction?.activePlayerId || !auction?.highestBidTeamId}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-600/30 text-emerald-200 hover:bg-emerald-600/50 text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Confirm Sold to Highest Bidder"
             >
               <CheckCircle className="w-3 h-3 text-emerald-400" />
               Sold
             </button>
 
+            {/* Mark Unsold */}
             <button
               onClick={() => handleAction('unsold', 'Mark player as unsold?')}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-600/30 text-rose-200 hover:bg-rose-600/50 text-xs font-semibold transition-colors"
+              disabled={auction?.status !== 'ACTIVE' || !auction?.activePlayerId}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-600/30 text-rose-200 hover:bg-rose-600/50 text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               title="Confirm Unsold"
             >
               <XCircle className="w-3 h-3 text-rose-400" />
               Unsold
             </button>
 
+            {/* Next Player */}
             <button
               onClick={() => handleAction('next')}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-purple-600/30 text-purple-200 hover:bg-purple-600/50 text-xs font-semibold transition-colors"
+              disabled={auction?.status !== 'ACTIVE'}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-purple-600/30 text-purple-200 hover:bg-purple-600/50 text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               title="Advance to next player in lot"
             >
               <FastForward className="w-3 h-3 text-purple-300" />
               Next
             </button>
 
+            {/* Share #WatchList Link */}
+            <button
+              onClick={() => {
+                const url = window.location.origin + window.location.pathname + '#WatchList';
+                navigator.clipboard.writeText(url);
+                alert('Live #WatchList link copied to clipboard: ' + url);
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-xs font-semibold border border-amber-500/30 transition-colors"
+              title="Copy public #WatchList link for spectators"
+            >
+              <Eye className="w-3 h-3 text-amber-400" />
+              #WatchList
+            </button>
+
+            {/* Reset Auction */}
             <button
               onClick={() => handleAction('reset', 'Are you sure you want to RESET the entire auction?')}
               className="flex items-center gap-1 px-2 py-1 rounded-md bg-slate-800 text-slate-400 hover:text-rose-400 hover:bg-slate-700 text-xs transition-colors"
@@ -153,6 +211,12 @@ export const LiveBroadcastHeader: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Manual Sell to Team Modal */}
+      <ManualSellModal
+        isOpen={isManualSellOpen}
+        onClose={() => setIsManualSellOpen(false)}
+      />
     </div>
   );
 };

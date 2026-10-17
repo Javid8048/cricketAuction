@@ -17,11 +17,12 @@ import {
   Menu,
   LayoutTemplate,
   LogIn,
+  Eye,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { useAuctionStore } from '../../store/auction.store';
 import { formatRupees } from '../../utils/currency';
-import { getBackendUrl } from '../../services/api';
+import { getBackendUrl, api } from '../../services/api';
 
 interface NavbarProps {
   currentTab: string;
@@ -54,8 +55,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showServerModal, setShowServerModal] = useState(false);
   const [serverUrlInput, setServerUrlInput] = useState(getBackendUrl());
 
+  React.useEffect(() => {
+    if (!state?.players || state.players.length === 0) {
+      api
+        .getPlayers()
+        .then((players) => {
+          if (Array.isArray(players) && players.length > 0) {
+            useAuctionStore.getState().setPlayers(players);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [state?.players]);
+
   const auctionStatus = state?.auction?.status || 'IDLE';
-  const userTeam = state?.teams.find((t) => t.id === user?.teamId);
+  const userTeam = Array.isArray(state?.teams) ? state.teams.find((t) => t.id === user?.teamId) : null;
 
   React.useEffect(() => {
     if (!state?.players || state.players.length === 0) {
@@ -64,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [state?.players]);
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0c101a]/95 backdrop-blur-md border-b border-slate-800/80">
+    <header className={`sticky top-0 z-40 bg-[#0c101a]/95 backdrop-blur-md border-b border-slate-800/80 ${layoutMode === 'sidebar' ? 'lg:hidden' : ''}`}>
       <div className="max-w-[1700px] mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-3">
         {/* Left: Mobile Menu Button & Brand */}
         <div className="flex items-center gap-3 sm:gap-6">
@@ -132,6 +146,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Radio className="w-3.5 h-3.5 text-amber-400" />
                 Live Arena
+              </button>
+
+              <button
+                onClick={() => onSelectTab('watchlist')}
+                className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                  currentTab === 'watchlist'
+                    ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5 text-amber-400" />
+                #WatchList
               </button>
 
               <button
@@ -228,6 +254,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="sm:hidden">Register</span>
           </button>
 
+
           {/* Admin Settings & Icon Modals */}
           {user?.role === 'ADMIN' && (
             <div className="hidden sm:flex items-center gap-1">
@@ -313,7 +340,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               ) : (
                 <div className="hidden md:flex flex-col items-end">
-                  <span className="text-xs font-bold text-amber-300">KhaderMeeran</span>
+                  <span className="text-xs font-bold text-amber-300">
+                    {user.name || user.username || 'Commission Admin'}
+                  </span>
                   <span className="text-[10px] text-slate-400 font-mono">Commission Admin</span>
                 </div>
               )}
@@ -334,6 +363,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span>SPECTATOR</span>
                 </div>
               )}
+
+              <button
+                onClick={() => onSelectTab('watchlist')}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 ${
+                  currentTab === 'watchlist'
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/20'
+                    : 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/40 text-amber-300'
+                }`}
+                title="Open Live Spectator WatchList"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>#WatchList</span>
+              </button>
+
               <button
                 onClick={() => onSelectTab('login')}
                 className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95 flex items-center gap-1.5"
@@ -430,8 +473,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       )}
 
-      {/* Mobile Bottom Navigation Bar (Screens < lg) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0c101a]/95 backdrop-blur-xl border-t border-slate-800/90 px-2 py-1.5 flex items-center justify-around shadow-2xl">
+      {/* Mobile Bottom Navigation Bar (Screens < lg, topbar mode only) */}
+      {layoutMode === 'topbar' && (
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0c101a]/95 backdrop-blur-xl border-t border-slate-800/90 px-2 py-1.5 flex items-center justify-around shadow-2xl">
         <button
           onClick={() => onSelectTab('register')}
           className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-[10px] font-semibold transition-colors ${
@@ -511,19 +555,33 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </>
         ) : (
-          <button
-            onClick={() => onSelectTab('login')}
-            className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl text-[10px] font-semibold transition-colors ${
-              currentTab === 'login'
-                ? 'text-amber-400 font-bold bg-amber-500/10'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <LogIn className="w-4 h-4" />
-            <span>Sign In</span>
-          </button>
+          <div className="flex items-center justify-around w-full">
+            <button
+              onClick={() => onSelectTab('watchlist')}
+              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl text-[10px] font-semibold transition-colors ${
+                currentTab === 'watchlist'
+                  ? 'text-amber-400 font-bold bg-amber-500/10'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Eye className="w-4 h-4" />
+              <span>#WatchList</span>
+            </button>
+            <button
+              onClick={() => onSelectTab('login')}
+              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl text-[10px] font-semibold transition-colors ${
+                currentTab === 'login'
+                  ? 'text-amber-400 font-bold bg-amber-500/10'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Sign In</span>
+            </button>
+          </div>
         )}
       </nav>
+    )}
     </header>
   );
 };

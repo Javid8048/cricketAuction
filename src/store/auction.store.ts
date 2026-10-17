@@ -37,6 +37,8 @@ interface AuctionStore {
 
   // Actions
   initState: () => Promise<void>;
+  setPlayers: (players: Player[]) => void;
+  refreshPlayers: () => Promise<void>;
   initSocketListeners: () => void;
   placeBid: (amount?: number, teamId?: string) => Promise<void>;
   dismissOverlay: () => void;
@@ -46,7 +48,6 @@ interface AuctionStore {
   stopStandaloneTimer: () => void;
   adminActionStandalone: (action: string, payload?: any) => Promise<void>;
   manuallyAssignPlayer: (playerId: string, teamId: string, amount: number) => Promise<void>;
-  refreshPlayers: () => Promise<void>;
   deleteTeam: (teamId: string) => Promise<void>;
   deleteAllTeams: () => Promise<void>;
 }
@@ -153,17 +154,16 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
 
   initState: async () => {
     try {
-      const data = await api.getCurrentAuction();
-      let playersList = data.players;
-      if (!playersList || playersList.length === 0) {
-        try {
-          playersList = await api.getPlayers();
-        } catch (e) {}
-      }
+      const [data, playersList] = await Promise.all([
+        api.getCurrentAuction(),
+        api.getPlayers().catch(() => []),
+      ]);
+      const mergedPlayers =
+        data.players && data.players.length > 0 ? data.players : playersList || [];
       set({
         state: {
           ...data,
-          players: playersList || [],
+          players: mergedPlayers,
         },
         secondsLeft: data.auction?.secondsLeft ?? 10,
         isConnected: true,
@@ -172,7 +172,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     } catch (err: any) {
       console.warn('Backend server offline. Enabling Standalone Live Simulation Engine on GitHub Pages!');
       // Initialize standalone client-side engine with rich teams and players
-      const activeP = INITIAL_PLAYERS[0];
+      const activeP = (INITIAL_PLAYERS && INITIAL_PLAYERS.length > 0) ? INITIAL_PLAYERS[0] : null;
       const defaultState: AuctionState = {
         auction: {
           id: 'auction-mega-2026',
@@ -180,18 +180,19 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
           status: 'ACTIVE',
           currentRound: 1,
           defaultTimerSec: 10,
-          activePlayerId: activeP.id,
-          activePlayerPrice: activeP.basePrice,
+          activePlayerId: activeP?.id || null,
+          activePlayerPrice: activeP?.basePrice || 100,
           highestBidTeamId: null,
           secondsLeft: 10,
         },
         activePlayer: activeP,
         highestBidTeam: null,
-        currentBid: activeP.basePrice,
+        currentBid: activeP?.basePrice || 0,
         secondsLeft: 10,
-        teams: INITIAL_TEAMS,
+        teams: INITIAL_TEAMS || [],
+        players: INITIAL_PLAYERS || [],
         recentBids: [],
-        minIncrement: getMinBidIncrement(activeP.basePrice),
+        minIncrement: activeP ? getMinBidIncrement(activeP.basePrice) : 100,
       };
 
       set({
@@ -205,8 +206,64 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     }
   },
 
+  setPlayers: (players: Player[]) => {
+    set((s) => ({
+      state: s.state
+        ? { ...s.state, players }
+        : ({
+            auction: { id: '', name: '', status: 'IDLE', currentRound: 1, defaultTimerSec: 10 },
+            activePlayer: null,
+            highestBidTeam: null,
+            currentBid: 0,
+            recentBids: [],
+            teams: [],
+            players,
+          } as AuctionState),
+    }));
+  },
+
+  refreshPlayers: async () => {
+    try {
+      const players = await api.getPlayers();
+      if (Array.isArray(players)) {
+        get().setPlayers(players);
+      }
+    } catch (e) {
+      console.error('Failed to refresh players', e);
+    }
+  },
+
   initSocketListeners: () => {
     const socket = socketService.connect();
+
+    const mergeState = (incoming: any): AuctionState => {
+      const currentState = get().state;
+      const currentPlayers = currentState?.players || [];
+      const currentTeams = currentState?.teams || [];
+
+      if (!incoming || typeof incoming !== 'object') {
+        return currentState || ({
+          auction: { id: '', name: '', status: 'IDLE', currentRound: 1, defaultTimerSec: 10 },
+          activePlayer: null,
+          highestBidTeam: null,
+          currentBid: 0,
+          recentBids: [],
+          teams: currentTeams,
+          players: currentPlayers,
+        } as AuctionState);
+      }
+
+      return {
+        ...currentState,
+        ...incoming,
+        auction: incoming.auction || currentState?.auction || { id: '', name: '', status: 'IDLE', currentRound: 1, defaultTimerSec: 10 },
+        teams: Array.isArray(incoming.teams) ? incoming.teams : currentTeams,
+        players:
+          Array.isArray(incoming.players) && incoming.players.length > 0
+            ? incoming.players
+            : currentPlayers,
+      };
+    };
 
     socket.on('connect', () => {
       set({ isConnected: true, isStandaloneMode: false });
@@ -219,9 +276,8 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:init', (data: AuctionState) => {
-      const merged = mergeIncomingState(data, get().state);
       set({
-        state: merged,
+        state: mergeState(data),
         secondsLeft: data.auction?.secondsLeft ?? 10,
         isConnected: true,
         isStandaloneMode: false,
@@ -230,7 +286,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
 
     socket.on('auction:players_updated', (data: { players?: Player[] } | Player[]) => {
       const playersList = Array.isArray(data) ? data : data?.players;
-      if (playersList && Array.isArray(playersList)) {
+      if (Array.isArray(playersList) && playersList.length > 0) {
         set((s) => ({
           state: s.state ? { ...s.state, players: playersList } : null,
         }));
@@ -238,24 +294,23 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:started', (data: AuctionState) => {
-      set({ state: mergeIncomingState(data, get().state) });
+      set({ state: mergeState(data) });
       get().showToast('Auction started!', 'success');
     });
 
     socket.on('auction:paused', (data: AuctionState) => {
-      set({ state: mergeIncomingState(data, get().state) });
+      set({ state: mergeState(data) });
       get().showToast('Auction paused by admin', 'info');
     });
 
     socket.on('auction:resumed', (data: AuctionState) => {
-      set({ state: mergeIncomingState(data, get().state) });
+      set({ state: mergeState(data) });
       get().showToast('Auction resumed', 'info');
     });
 
     socket.on('auction:player', (data: AuctionState) => {
-      const merged = mergeIncomingState(data, get().state);
       set({
-        state: merged,
+        state: mergeState(data),
         secondsLeft: data.auction?.secondsLeft ?? 10,
         soldOverlay: null,
         unsoldOverlay: null,
@@ -263,11 +318,20 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       get().showToast(`Up next: ${data.activePlayer?.name}`, 'info');
     });
 
-    socket.on('auction:timer', (data: { secondsLeft: number; warning: boolean; urgent: boolean }) => {
+    socket.on('auction:timer', (data: { secondsLeft: number | null; warning?: boolean; urgent?: boolean; timerEnabled?: boolean }) => {
+      if (data.timerEnabled === false) {
+        set({
+          secondsLeft: 0,
+          isTimerWarning: false,
+          isTimerUrgent: false,
+        });
+        return;
+      }
+
       set({
-        secondsLeft: data.secondsLeft,
-        isTimerWarning: data.warning,
-        isTimerUrgent: data.urgent,
+        secondsLeft: data.secondsLeft ?? 0,
+        isTimerWarning: Boolean(data.warning),
+        isTimerUrgent: Boolean(data.urgent),
       });
 
       if (data.urgent) {
@@ -277,10 +341,29 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       }
     });
 
+    socket.on('auction:settings_updated', (data: any) => {
+      if (data && Array.isArray(data.teams)) {
+        set({
+          state: mergeState(data),
+          secondsLeft: data.auction?.timerEnabled === false ? 0 : (data.auction?.secondsLeft ?? get().secondsLeft),
+          isTimerWarning: false,
+          isTimerUrgent: false,
+        });
+        if (data.auction) {
+          get().showToast(
+            `Auction settings updated: Timer is ${data.auction?.timerEnabled === false ? 'OFF (Manual Mode)' : 'ON'}`,
+            'info'
+          );
+        }
+      } else {
+        // Refetch clean state from API
+        get().initState();
+      }
+    });
+
     socket.on('auction:bid', (data: { bid: Bid; amount: number; teamName: string; playerName: string; state: AuctionState }) => {
-      const merged = mergeIncomingState(data.state, get().state);
       set({
-        state: merged,
+        state: mergeState(data.state),
         secondsLeft: data.state.auction?.secondsLeft ?? 10,
         isTimerWarning: false,
         isTimerUrgent: false,
@@ -302,9 +385,8 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:sold', (data: any) => {
-      const merged = mergeIncomingState(data.state, get().state);
       set({
-        state: merged,
+        state: mergeState(data.state),
         soldOverlay: {
           player: data.player,
           winningTeam: data.winningTeam,
@@ -332,9 +414,8 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:unsold', (data: any) => {
-      const merged = mergeIncomingState(data.state, get().state);
       set({
-        state: merged,
+        state: mergeState(data.state),
         unsoldOverlay: {
           player: data.player,
           basePrice: data.basePrice,
@@ -351,9 +432,8 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:reset', (data: AuctionState) => {
-      const merged = mergeIncomingState(data, get().state);
       set({
-        state: merged,
+        state: mergeState(data),
         secondsLeft: 10,
         soldOverlay: null,
         unsoldOverlay: null,
@@ -362,7 +442,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:ended', (data: { message: string; state: AuctionState }) => {
-      set({ state: mergeIncomingState(data.state, get().state) });
+      set({ state: mergeState(data.state) });
       get().showToast(data.message, 'info');
     });
   },
@@ -441,7 +521,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       setTimeout(() => set({ lastBidFlash: false }), 600);
       get().startStandaloneTimer();
 
-      // Trigger automatic AI rival franchise bid after 3 seconds if under budget
+      // Trigger automatic AI rival team bid after 3 seconds if under budget
       setTimeout(() => {
         const cur = get().state;
         if (!cur || cur.auction.status !== 'ACTIVE' || !cur.highestBidTeam) return;
@@ -508,13 +588,26 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       get().showToast('Auction started/resumed', 'success');
     } else if (action === 'sell') {
       get().stopStandaloneTimer();
-      if (!state.activePlayer || !state.highestBidTeam) {
+      if (!state.activePlayer) return;
+
+      const manualTeamId = payload?.teamId;
+      const manualPrice = payload?.price;
+      const winningTeam = manualTeamId
+        ? state.teams.find((t) => t.id === manualTeamId) || state.highestBidTeam
+        : state.highestBidTeam;
+
+      if (!winningTeam) {
         get().adminActionStandalone('unsold');
         return;
       }
-      const winningTeam = state.highestBidTeam;
+
       const player = state.activePlayer;
-      const finalPrice = state.currentBid;
+      const finalPrice = manualPrice !== undefined ? Number(manualPrice) : (state.currentBid || player.basePrice);
+
+      if (winningTeam.remainingPurse < finalPrice) {
+        get().showToast(`${winningTeam.name} has insufficient purse (${formatRupees(winningTeam.remainingPurse)})!`, 'error');
+        return;
+      }
 
       // Deduct purse and add player to squad
       const updatedTeams = state.teams.map((t) => {
@@ -535,7 +628,17 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       });
 
       set({
-        state: { ...state, teams: updatedTeams },
+        state: {
+          ...state,
+          teams: updatedTeams,
+          highestBidTeam: winningTeam,
+          currentBid: finalPrice,
+          auction: {
+            ...state.auction,
+            highestBidTeamId: winningTeam.id,
+            activePlayerPrice: finalPrice,
+          },
+        },
         soldOverlay: {
           player,
           winningTeam,
@@ -660,6 +763,27 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         get().showToast(`Player on block: ${targetP.name}`, 'info');
         get().startStandaloneTimer();
       }
+    } else if (action === 'toggle_timer') {
+      const currentEnabled = state.auction.timerEnabled !== false;
+      const nextEnabled = !currentEnabled;
+      set({
+        state: {
+          ...state,
+          auction: {
+            ...state.auction,
+            timerEnabled: nextEnabled,
+          },
+        },
+        secondsLeft: nextEnabled ? (state.auction.defaultTimerSec || 10) : 0,
+        isTimerWarning: false,
+        isTimerUrgent: false,
+      });
+      if (nextEnabled) {
+        get().startStandaloneTimer();
+      } else {
+        get().stopStandaloneTimer();
+      }
+      get().showToast(`Timer is now ${nextEnabled ? 'ON' : 'OFF (Manual Mode)'}`, 'info');
     }
   },
 
@@ -752,37 +876,6 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       sound.playGavelSound();
       get().showToast(`Player assigned to ${team.name} for ${formatRupees(amount)}!`, 'success');
     }
-  },
-
-  refreshPlayers: async () => {
-    try {
-      const playersList = await api.getPlayers();
-      set((s) => ({
-        state: s.state
-          ? { ...s.state, players: playersList }
-          : {
-              auction: {
-                id: 'auction-mega-2026',
-                name: 'Premier Cricket Mega Auction 2026',
-                status: 'IDLE',
-                currentRound: 1,
-                defaultTimerSec: 10,
-                activePlayerId: null,
-                activePlayerPrice: 100,
-                highestBidTeamId: null,
-                secondsLeft: 10,
-              },
-              activePlayer: null,
-              highestBidTeam: null,
-              currentBid: 100,
-              secondsLeft: 10,
-              teams: [],
-              players: playersList,
-              recentBids: [],
-              minIncrement: 100,
-            },
-      }));
-    } catch (e) {}
   },
 
   deleteTeam: async (teamId: string) => {

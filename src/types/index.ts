@@ -37,6 +37,8 @@ export interface Player {
   bestBowling: string;
   status: 'UPCOMING' | 'IN_AUCTION' | 'SOLD' | 'UNSOLD';
   currentPrice?: number | null;
+  belongingTeamId?: string | null;
+  belongingTeam?: Team | null;
   teamPlayer?: {
     team: Team;
     price: number;

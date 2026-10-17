@@ -5,18 +5,20 @@ interface LoginPageProps {
   onSuccess: () => void;
   onOpenRegister?: () => void;
   onEnterSpectator?: () => void;
+  onOpenWatchList?: () => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({
   onSuccess,
   onOpenRegister = () => {},
   onEnterSpectator,
+  onOpenWatchList,
 }) => {
   return (
     <LandingPage
       onSuccess={onSuccess}
       onOpenRegister={onOpenRegister}
-      onEnterSpectator={onEnterSpectator}
+      onEnterSpectator={onEnterSpectator || onOpenWatchList}
     />
   );
 };

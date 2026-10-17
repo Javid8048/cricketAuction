@@ -1,26 +1,45 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { Menu, Flame, LayoutTemplate } from 'lucide-react';
 import { Navbar } from './components/common/Navbar';
 import { Sidebar } from './components/common/Sidebar';
 import { Toast } from './components/common/Toast';
 import { SoldUnsoldBanner } from './components/auction/SoldUnsoldBanner';
 import { LiveAuctionPage } from './pages/LiveAuctionPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { TeamDashboardPage } from './pages/TeamDashboardPage';
-import { PlayersDatabasePage } from './pages/PlayersDatabasePage';
-import { TeamsDatabasePage } from './pages/TeamsDatabasePage';
-import { AuctionHistoryPage } from './pages/AuctionHistoryPage';
-import { LoginPage } from './pages/LoginPage';
 import { LandingPage } from './pages/LandingPage';
-import { PlayerRegisterPage } from './components/player/PlayerRegisterPage';
-import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { AdminSettingsModal } from './components/admin/AdminSettingsModal';
 import { IconPlayerModal } from './components/admin/IconPlayerModal';
 import { TeamFormModal } from './components/admin/TeamFormModal';
 import { FranchiseCredentialsModal } from './components/admin/FranchiseCredentialsModal';
 import { RenderWakeupModal } from './components/common/RenderWakeupModal';
+import { DbConnectionGatekeeper } from './components/common/DbConnectionGatekeeper';
 import { useAuctionStore } from './store/auction.store';
 import { useAuthStore } from './store/auth.store';
+
+// Code splitting secondary pages with React.lazy
+const AdminDashboardPage = lazy(() =>
+  import('./pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage }))
+);
+const TeamDashboardPage = lazy(() =>
+  import('./pages/TeamDashboardPage').then((m) => ({ default: m.TeamDashboardPage }))
+);
+const PlayersDatabasePage = lazy(() =>
+  import('./pages/PlayersDatabasePage').then((m) => ({ default: m.PlayersDatabasePage }))
+);
+const TeamsDatabasePage = lazy(() =>
+  import('./pages/TeamsDatabasePage').then((m) => ({ default: m.TeamsDatabasePage }))
+);
+const AuctionHistoryPage = lazy(() =>
+  import('./pages/AuctionHistoryPage').then((m) => ({ default: m.AuctionHistoryPage }))
+);
+const PlayerRegisterPage = lazy(() =>
+  import('./components/player/PlayerRegisterPage').then((m) => ({ default: m.PlayerRegisterPage }))
+);
+const WatchListPage = lazy(() =>
+  import('./pages/WatchListPage').then((m) => ({ default: m.WatchListPage }))
+);
+const AdminSettingsPage = lazy(() =>
+  import('./pages/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage }))
+);
 
 export function App() {
   const getInitialSpectatorMode = (): boolean => {
@@ -34,12 +53,9 @@ export function App() {
   const getInitialTab = (): string => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.toLowerCase();
-      if (hash === '#register') {
-        return 'register';
-      }
-      if (hash === '#watchlive') {
-        return 'arena';
-      }
+      if (hash === '#register') return 'register';
+      if (hash === '#watchlive') return 'arena';
+      if (hash === '#watchlist') return 'watchlist';
     }
     return 'arena';
   };
@@ -65,6 +81,7 @@ export function App() {
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>(getInitialTheme());
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isSpectatorMode, setIsSpectatorMode] = useState<boolean>(getInitialSpectatorMode());
+  const [isDbConnected, setIsDbConnected] = useState<boolean>(false);
 
   useEffect(() => {
     if (themeMode === 'light') {
@@ -84,10 +101,19 @@ export function App() {
   const { initState, initSocketListeners } = useAuctionStore();
   const { user, isAuthenticated, checkAuth } = useAuthStore();
 
-  useEffect(() => {
+  const handleDbConnected = () => {
+    setIsDbConnected(true);
     checkAuth();
     initState();
     initSocketListeners();
+  };
+
+  useEffect(() => {
+    if (isDbConnected) {
+      checkAuth();
+      initState();
+      initSocketListeners();
+    }
 
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();
@@ -96,13 +122,17 @@ export function App() {
       } else if (hash === '#watchlive') {
         setIsSpectatorMode(true);
         setCurrentTab('arena');
+      } else if (hash === '#watchlist') {
+        setCurrentTab('watchlist');
+      } else {
+        setCurrentTab(useAuthStore.getState().isAuthenticated ? 'arena' : 'login');
       }
     };
 
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [checkAuth, initState, initSocketListeners]);
+  }, [isDbConnected, checkAuth, initState, initSocketListeners]);
 
   const toggleLayoutMode = () => {
     const nextMode = layoutMode === 'topbar' ? 'sidebar' : 'topbar';
@@ -129,14 +159,20 @@ export function App() {
       }
     } else if (tab === 'arena' && isSpectatorMode && !isAuthenticated) {
       window.location.hash = 'WatchLive';
-    } else if (window.location.hash === '#register' || window.location.hash.toLowerCase() === '#watchlive') {
+    } else if (tab === 'watchlist') {
+      window.location.hash = 'WatchList';
+    } else if (
+      window.location.hash === '#register' ||
+      window.location.hash.toLowerCase() === '#watchlive' ||
+      window.location.hash.toLowerCase() === '#watchlist'
+    ) {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
   };
 
   // Determine what screen to display:
   // When unauthenticated, user sees the LandingPage (with dedicated Franchise Login & Admin Login)
-  // or Player Registration, unless they chose Spectator Mode.
+  // or Player Registration / WatchList, unless they chose Spectator Mode (#WatchLive).
   const renderMainContent = () => {
     if (!isAuthenticated && !isSpectatorMode) {
       if (currentTab === 'register') {
@@ -146,6 +182,9 @@ export function App() {
             onOpenLogin={() => handleTabChange('login')}
           />
         );
+      }
+      if (currentTab === 'watchlist') {
+        return <WatchListPage onOpenLogin={() => handleTabChange('login')} />;
       }
       return (
         <LandingPage
@@ -162,8 +201,15 @@ export function App() {
     switch (currentTab) {
       case 'arena':
         return <LiveAuctionPage />;
+      case 'watchlist':
+        return <WatchListPage onOpenLogin={() => handleTabChange('login')} />;
       case 'players':
-        return <PlayersDatabasePage onNavigateToRegister={() => handleTabChange('register')} />;
+        return (
+          <PlayersDatabasePage
+            onNavigateToRegister={() => handleTabChange('register')}
+            onSelectTab={handleTabChange}
+          />
+        );
       case 'teams':
         return <TeamsDatabasePage />;
       case 'register':
@@ -217,6 +263,21 @@ export function App() {
         return <LiveAuctionPage />;
     }
   };
+
+  // Check DB connection on refresh and allow access only once connected
+  if (!isDbConnected) {
+    return (
+      <DbConnectionGatekeeper
+        onConnected={handleDbConnected}
+        onBypass={() => {
+          setIsDbConnected(true);
+          checkAuth();
+          initState();
+          initSocketListeners();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black">
@@ -292,7 +353,16 @@ export function App() {
 
         {/* Content Area */}
         <main className="flex-1 min-w-0 pb-20 lg:pb-12">
-          {renderMainContent()}
+          <Suspense
+            fallback={
+              <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+                <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-sm text-slate-400 font-medium">Loading view...</p>
+              </div>
+            }
+          >
+            {renderMainContent()}
+          </Suspense>
         </main>
       </div>
 
@@ -334,11 +404,6 @@ export function App() {
       {/* Live Overlays & Toasts */}
       <SoldUnsoldBanner />
       <Toast />
-
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-[#07090e] py-4 text-center text-xs text-slate-500 font-mono">
-        CRICKET AUCTION ARENA • Local Tournament Edition • Purse: ₹15,000 • 12 Squad Limit • Real-time WebSocket Engine
-      </footer>
     </div>
   );
 }
