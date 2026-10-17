@@ -206,7 +206,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         auction: {
           id: 'auction-mega-2026',
           name: 'Premier Cricket Mega Auction 2026',
-          status: 'ACTIVE',
+          status: 'PAUSED',
           currentRound: 1,
           defaultTimerSec: 10,
           activePlayerId: activeP?.id || null,
@@ -782,7 +782,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
             activePlayerId: nextP.id,
             activePlayerPrice: nextP.basePrice,
             highestBidTeamId: null,
-            status: 'ACTIVE',
+            status: 'PAUSED',
           },
         },
         secondsLeft: 10,
@@ -790,26 +790,24 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         isTimerUrgent: false,
       });
 
-      get().showToast(`Up Next: ${nextP.name}`, 'info');
-      get().startStandaloneTimer();
+      get().showToast(`Up Next: ${nextP.name} (Ready - Click Start to begin bidding)`, 'info');
     } else if (action === 'reset') {
       get().stopStandaloneTimer();
-      const firstP = INITIAL_PLAYERS[0];
       set({
         state: {
           ...state,
           teams: INITIAL_TEAMS,
-          activePlayer: firstP,
-          currentBid: firstP.basePrice,
+          activePlayer: null,
+          currentBid: 0,
           highestBidTeam: null,
           recentBids: [],
-          minIncrement: getMinBidIncrement(firstP.basePrice),
+          minIncrement: 100,
           auction: {
             ...state.auction,
-            activePlayerId: firstP.id,
-            activePlayerPrice: firstP.basePrice,
+            activePlayerId: null,
+            activePlayerPrice: null,
             highestBidTeamId: null,
-            status: 'ACTIVE',
+            status: 'PAUSED',
           },
         },
         secondsLeft: 10,
@@ -817,7 +815,6 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         unsoldOverlay: null,
       });
       get().showToast('Auction reset to pristine state', 'info');
-      get().startStandaloneTimer();
     } else if (action === 'select_player' && payload) {
       get().stopStandaloneTimer();
       set({ soldOverlay: null, unsoldOverlay: null });
@@ -836,15 +833,14 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
               activePlayerId: targetP.id,
               activePlayerPrice: targetP.basePrice,
               highestBidTeamId: null,
-              status: 'ACTIVE',
+              status: 'PAUSED',
             },
           },
           secondsLeft: 10,
           isTimerWarning: false,
           isTimerUrgent: false,
         });
-        get().showToast(`Player on block: ${targetP.name}`, 'info');
-        get().startStandaloneTimer();
+        get().showToast(`Player on block: ${targetP.name} (Ready - Click Start to begin bidding)`, 'info');
       }
     } else if (action === 'toggle_timer') {
       const currentEnabled = state.auction.timerEnabled !== false;

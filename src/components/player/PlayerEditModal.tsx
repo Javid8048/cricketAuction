@@ -54,7 +54,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
     profileImage: '',
     belongingTeamId: '',
     soldToTeamId: '',
-    soldPrice: 200,
+    soldPrice: 100,
     matches: 0,
     runs: 0,
     battingAvg: 0,
@@ -92,7 +92,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         profileImage: player.profileImage || '',
         belongingTeamId: player.belongingTeamId || player.belongingTeam?.id || '',
         soldToTeamId: (player.status === 'SOLD' && (player.teamPlayer?.teamId || player.teamPlayer?.team?.id)) ? (player.teamPlayer?.teamId || player.teamPlayer?.team?.id || '') : '',
-        soldPrice: existingSoldPrice > 100 && existingSoldPrice < 2500 ? existingSoldPrice : 200,
+        soldPrice: existingSoldPrice >= 100 && existingSoldPrice <= 2500 ? existingSoldPrice : 100,
         matches: player.matches || 0,
         runs: player.runs || 0,
         battingAvg: player.battingAvg || 0,
@@ -165,8 +165,8 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
 
     if (formData.soldToTeamId) {
       const price = Number(formData.soldPrice);
-      if (isNaN(price) || price <= 100 || price >= 2500) {
-        setErrorMsg('Final Transfer / Sold Price must be greater than ₹100 and less than ₹2,500.');
+      if (isNaN(price) || price < 100 || price > 2500) {
+        setErrorMsg('Final Transfer / Sold Price must be between ₹100 and ₹2,500.');
         return;
       }
 
@@ -619,15 +619,15 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                   <span>Final Transfer / Sold Price (₹)</span>
                 </label>
                 <span className="text-[10px] text-amber-300 font-mono">
-                  Price: ₹101 to ₹2,499
+                  Price: ₹100 to ₹2,500
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  min="101"
-                  max="2499"
+                  min="100"
+                  max="2500"
                   step="50"
                   value={formData.soldPrice}
                   onChange={(e) => setFormData({ ...formData, soldPrice: Number(e.target.value) })}
@@ -636,7 +636,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                 />
 
                 <div className="flex items-center gap-1">
-                  {[150, 200, 500, 1000, 2000].map((preset) => (
+                  {[100, 200, 500, 1000, 2000, 2500].map((preset) => (
                     <button
                       key={preset}
                       type="button"

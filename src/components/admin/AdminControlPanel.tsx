@@ -32,7 +32,7 @@ export const AdminControlPanel: React.FC = () => {
   // Manual Assignment State
   const [activeTab, setActiveTab] = useState<'bidding' | 'manual'>('bidding');
   const [assignTeamId, setAssignTeamId] = useState('');
-  const [assignAmount, setAssignAmount] = useState<number | string>(200);
+  const [assignAmount, setAssignAmount] = useState<number | string>(100);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export const AdminControlPanel: React.FC = () => {
   useEffect(() => {
     if (activePlayer) {
       const pPrice = activePlayer.basePrice;
-      setAssignAmount(pPrice && pPrice > 100 && pPrice < 2500 ? pPrice : 200);
+      setAssignAmount(pPrice && pPrice >= 100 && pPrice <= 2500 ? pPrice : 100);
     }
     if (teams.length > 0 && !assignTeamId) {
       setAssignTeamId(teams[0].id);
@@ -95,8 +95,8 @@ export const AdminControlPanel: React.FC = () => {
       return;
     }
     const finalPrice = assignAmount === '' ? 0 : Number(assignAmount);
-    if (isNaN(finalPrice) || finalPrice <= 100 || finalPrice >= 2500) {
-      alert('Price must be greater than ₹100 and less than ₹2,500.');
+    if (isNaN(finalPrice) || finalPrice < 100 || finalPrice > 2500) {
+      alert('Price must be between ₹100 and ₹2,500.');
       return;
     }
 
@@ -302,14 +302,31 @@ export const AdminControlPanel: React.FC = () => {
                   <span className="absolute left-3 top-2 text-xs font-mono font-bold text-slate-400">₹</span>
                   <input
                     type="number"
-                    min="101"
-                    max="2499"
+                    min="100"
+                    max="2500"
                     step="any"
                     value={assignAmount}
                     onChange={(e) => setAssignAmount(e.target.value)}
-                    placeholder="Enter price (₹101 - ₹2,499)"
+                    placeholder="Enter price (₹100 - ₹2,500)"
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-emerald-500"
                   />
+                </div>
+                {/* Quick chip presets */}
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {[100, 200, 500, 1000, 2000, 2500].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setAssignAmount(preset)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all ${
+                        Number(assignAmount) === preset
+                          ? 'bg-emerald-500 text-slate-950'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                      }`}
+                    >
+                      {formatRupees(preset)}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -318,7 +335,7 @@ export const AdminControlPanel: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleDirectManualAssign}
-                  disabled={loadingAction || assignAmount === '' || Number(assignAmount) <= 100 || Number(assignAmount) >= 2500}
+                  disabled={loadingAction || assignAmount === '' || Number(assignAmount) < 100 || Number(assignAmount) > 2500}
                   className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all transform active:scale-95 disabled:opacity-50 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5"
                 >
                   <Zap className="w-4 h-4 fill-slate-950" />
@@ -377,8 +394,8 @@ export const AdminControlPanel: React.FC = () => {
           ) : (
             <button
               onClick={() => handleAction('start', () => api.startAuction())}
-              disabled={loadingAction}
-              className="p-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all"
+              disabled={loadingAction || !auction?.activePlayerId}
+              className="p-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Play className="w-5 h-5 text-emerald-400" />
               <span>{auction?.status === 'PAUSED' ? 'RESUME' : 'START AUCTION'}</span>

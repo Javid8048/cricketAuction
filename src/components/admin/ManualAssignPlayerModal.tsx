@@ -23,15 +23,15 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const getDefaultPrice = (p?: Player | null) => {
-    if (p?.basePrice && p.basePrice > 100 && p.basePrice < 2500) {
+    if (p?.basePrice && p.basePrice >= 100 && p.basePrice <= 2500) {
       return p.basePrice;
     }
-    return 200;
+    return 100;
   };
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
-  const [amount, setAmount] = useState<number | string>(200);
+  const [amount, setAmount] = useState<number | string>(100);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -97,12 +97,12 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
       setErrorMsg('Please enter a valid price.');
       return;
     }
-    if (finalPrice <= 100) {
-      setErrorMsg('Price must be greater than ₹100.');
+    if (finalPrice < 100) {
+      setErrorMsg('Price must be at least ₹100.');
       return;
     }
-    if (finalPrice >= 2500) {
-      setErrorMsg('Price must be less than ₹2,500.');
+    if (finalPrice > 2500) {
+      setErrorMsg('Price cannot exceed ₹2,500.');
       return;
     }
     if (isPurseInsufficient) {
@@ -128,16 +128,16 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
   };
 
   const quickAmounts = [
-    ...(selectedPlayer?.basePrice && selectedPlayer.basePrice > 100 && selectedPlayer.basePrice < 2500
+    { label: '₹100', value: 100 },
+    ...(selectedPlayer?.basePrice && selectedPlayer.basePrice >= 100 && selectedPlayer.basePrice <= 2500 && selectedPlayer.basePrice !== 100
       ? [{ label: `Base (₹${selectedPlayer.basePrice})`, value: selectedPlayer.basePrice }]
       : []),
-    { label: '₹150', value: 150 },
     { label: '₹200', value: 200 },
     { label: '₹500', value: 500 },
     { label: '₹1,000', value: 1000 },
     { label: '₹1,500', value: 1500 },
     { label: '₹2,000', value: 2000 },
-    { label: '₹2,400', value: 2400 },
+    { label: '₹2,500', value: 2500 },
   ];
 
   return (
@@ -229,15 +229,15 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
               3. Final Transfer Price (₹)
             </label>
             <span className="text-[11px] font-mono text-amber-400 font-bold">
-              Must be ₹101 – ₹2,499
+              Must be ₹100 – ₹2,500
             </span>
           </div>
           <div className="relative mb-2">
             <span className="absolute left-3 top-2.5 text-xs font-mono font-bold text-slate-400">₹</span>
             <input
               type="number"
-              min="101"
-              max="2499"
+              min="100"
+              max="2500"
               step="any"
               value={amount}
               onChange={(e) => {
@@ -245,7 +245,7 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
                 setErrorMsg(null);
               }}
               required
-              placeholder="Enter transfer price (₹101 - ₹2,499)"
+              placeholder="Enter transfer price (₹100 - ₹2,500)"
               className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2.5 text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-500"
             />
           </div>
@@ -268,12 +268,12 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
             ))}
           </div>
           <p className="text-[10px] text-slate-400 mt-1.5">
-            💡 Commissioner override: Price must be greater than ₹100 and less than ₹2,500. Amount will be deducted from team's purse.
+            💡 Commissioner override: Price must be between ₹100 and ₹2,500. Amount will be deducted from team's purse.
           </p>
-          {amount !== '' && (numericAmount <= 100 || numericAmount >= 2500) && (
+          {amount !== '' && (numericAmount < 100 || numericAmount > 2500) && (
             <p className="text-[11px] text-rose-400 font-semibold mt-1 flex items-center gap-1">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-              <span>Price must be greater than ₹100 and less than ₹2,500.</span>
+              <span>Price must be between ₹100 and ₹2,500.</span>
             </p>
           )}
         </div>
@@ -329,7 +329,7 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
           </button>
           <button
             type="submit"
-            disabled={loading || isPurseInsufficient || isSquadFull || amount === '' || numericAmount <= 100 || numericAmount >= 2500}
+            disabled={loading || isPurseInsufficient || isSquadFull || amount === '' || numericAmount < 100 || numericAmount > 2500}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all transform active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-amber-500/20 flex items-center gap-2"
           >
             {loading ? 'Processing...' : `Confirm & Assign for ${formatRupees(numericAmount)}`}

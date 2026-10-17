@@ -132,8 +132,9 @@ export const LiveBroadcastHeader: React.FC = () => {
             ) : (
               <button
                 onClick={() => handleAction('start')}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-semibold transition-colors"
-                title="Start or Resume bidding"
+                disabled={!auction?.activePlayerId}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title={auction?.activePlayerId ? (auction?.status === 'PAUSED' ? 'Resume bidding' : 'Start bidding') : 'Select and put a player on the block first before starting'}
               >
                 <Play className="w-3 h-3" />
                 {auction?.status === 'PAUSED' ? 'Resume' : 'Start'}
