@@ -40,6 +40,8 @@ export interface Player {
   belongingTeamId?: string | null;
   belongingTeam?: Team | null;
   teamPlayer?: {
+    id?: string;
+    teamId?: string;
     team: Team;
     price: number;
     isIcon?: boolean;

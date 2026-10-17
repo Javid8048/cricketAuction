@@ -84,13 +84,30 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({ playerId
                   <span className="text-slate-500">Bowling Style: </span>
                   <span className="text-slate-200 font-semibold">{player.bowlingStyle}</span>
                 </div>
-                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800 col-span-2">
-                  <span className="text-slate-500">Belongs to Team: </span>
-                  <span className="text-amber-300 font-semibold">
-                    {player.belongingTeam?.name
-                      ? `${player.belongingTeam.name} (Open for bids by all teams)`
-                      : 'Not Selected (Independent Talent / Open Pool)'}
-                  </span>
+                <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 col-span-2 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400 font-semibold flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Player Belongs To (Home Affiliation):</span>
+                    </span>
+                    <span className="text-amber-300 font-bold">
+                      {player.belongingTeam?.name
+                        ? `${player.belongingTeam.name} (Can play for any team)`
+                        : 'Independent / Free Agent (Open Pool)'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-800/60">
+                    <span className="text-slate-400 font-semibold flex items-center gap-1.5">
+                      <Trophy className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Player Sold To (Drafted Franchise):</span>
+                    </span>
+                    <span className={player.status === 'SOLD' && player.teamPlayer?.team ? 'text-emerald-400 font-bold' : 'text-slate-500 font-medium'}>
+                      {player.status === 'SOLD' && player.teamPlayer?.team
+                        ? `${player.teamPlayer.team.name} (${formatRupees(player.teamPlayer.price || player.currentPrice || 0)})`
+                        : 'Not Sold / In Open Pool'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

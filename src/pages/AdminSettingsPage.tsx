@@ -36,7 +36,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
   themeMode = 'dark',
   onThemeModeChange,
 }) => {
-  const { state, showToast, isStandaloneMode, deleteAllTeams } = useAuctionStore();
+  const { state, showToast, isStandaloneMode, deleteAllTeams, initState } = useAuctionStore();
   const auction = state?.auction;
 
   const [timerEnabled, setTimerEnabled] = useState(auction?.timerEnabled !== false);
@@ -91,6 +91,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({
           iconPlayerPrice,
           defaultBasePrice,
         });
+        await initState();
         showToast('Auction settings updated successfully!', 'success');
       }
       setSaveSuccess(true);

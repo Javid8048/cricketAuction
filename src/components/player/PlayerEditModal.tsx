@@ -15,6 +15,8 @@ import {
   Save,
   ChevronDown,
   ChevronUp,
+  Trophy,
+  IndianRupee,
 } from 'lucide-react';
 import { Player, Team } from '../../types';
 import { api } from '../../services/api';
@@ -50,7 +52,9 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
     basePrice: 100,
     category: 'Local Talent',
     profileImage: '',
-    teamId: '',
+    belongingTeamId: '',
+    soldToTeamId: '',
+    soldPrice: 200,
     matches: 0,
     runs: 0,
     battingAvg: 0,
@@ -72,6 +76,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
 
   useEffect(() => {
     if (player && isOpen) {
+      const existingSoldPrice = player.teamPlayer?.price || player.currentPrice || player.basePrice || 200;
       setFormData({
         name: player.name || '',
         country: player.country || 'India',
@@ -85,7 +90,9 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         basePrice: player.basePrice || 100,
         category: player.category || 'Local Talent',
         profileImage: player.profileImage || '',
-        teamId: player.belongingTeamId || player.belongingTeam?.id || player.teamPlayer?.team?.id || '',
+        belongingTeamId: player.belongingTeamId || player.belongingTeam?.id || '',
+        soldToTeamId: (player.status === 'SOLD' && (player.teamPlayer?.teamId || player.teamPlayer?.team?.id)) ? (player.teamPlayer?.teamId || player.teamPlayer?.team?.id || '') : '',
+        soldPrice: existingSoldPrice > 100 && existingSoldPrice < 2500 ? existingSoldPrice : 200,
         matches: player.matches || 0,
         runs: player.runs || 0,
         battingAvg: player.battingAvg || 0,
@@ -156,6 +163,30 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
       return;
     }
 
+    if (formData.soldToTeamId) {
+      const price = Number(formData.soldPrice);
+      if (isNaN(price) || price <= 100 || price >= 2500) {
+        setErrorMsg('Final Transfer / Sold Price must be greater than ₹100 and less than ₹2,500.');
+        return;
+      }
+
+      const targetTeam = teams.find((t) => t.id === formData.soldToTeamId);
+      const existingTeamPlayer = player.teamPlayer;
+      const isSameTeam = Boolean(
+        existingTeamPlayer &&
+        (existingTeamPlayer.teamId === formData.soldToTeamId || existingTeamPlayer.team?.id === formData.soldToTeamId)
+      );
+      const currentPriceDeducted = isSameTeam && existingTeamPlayer ? (existingTeamPlayer.price || 0) : 0;
+      const effectiveRemaining = (targetTeam?.remainingPurse || 0) + currentPriceDeducted;
+
+      if (targetTeam && effectiveRemaining < price) {
+        setErrorMsg(
+          `Insufficient purse! ${targetTeam.name} has only ${formatRupees(targetTeam.remainingPurse)} remaining.`
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setErrorMsg(null);
 
@@ -167,7 +198,9 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         basePrice: Number(formData.basePrice) || 100,
         place: formData.place.trim(),
         phone: formData.phone.trim(),
-        teamId: formData.teamId ? formData.teamId : null,
+        belongingTeamId: formData.belongingTeamId ? formData.belongingTeamId : 'NONE',
+        soldToTeamId: formData.soldToTeamId ? formData.soldToTeamId : 'NONE',
+        soldPrice: formData.soldToTeamId ? Number(formData.soldPrice) : null,
       };
 
       const updated = await api.updatePlayer(player.id, payload);
@@ -506,24 +539,24 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
           </div>
         </div>
 
-        {/* ASSIGNED TEAM LOV (List of Values of added teams) */}
-        <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+        {/* OPTION 1: PLAYER BELONGS TO (HOME TEAM AFFILIATION) */}
+        <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
           <label className="block text-xs font-bold text-white flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Shield className="w-4 h-4 text-amber-400" />
-              <span>Belonging Team (Home Affiliation)</span>
+              <span>Option 1: Player Belongs To (Home Team Affiliation)</span>
             </span>
-            <span className="text-[10px] text-slate-500 font-normal">
-              Editable anytime
+            <span className="text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+              Open to Any Team
             </span>
           </label>
           <div className="relative">
             <select
-              value={formData.teamId}
-              onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
+              value={formData.belongingTeamId}
+              onChange={(e) => setFormData({ ...formData, belongingTeamId: e.target.value })}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
             >
-              <option value="">Not Selected (New Player / Yet to decide - Open Pool)</option>
+              <option value="">-- Independent (Free Agent / Open Pool) --</option>
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name} ({t.shortName})
@@ -531,16 +564,121 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
               ))}
             </select>
           </div>
-          <p className="text-[11px] text-slate-500">
-            {formData.teamId ? (
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            {formData.belongingTeamId ? (
               <span className="text-amber-300 font-medium">
-                Player belongs to{' '}
-                <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong>. In the auction, players are shuffled into the pool so that even though they belong to this team, they can be bid on and played by any other team!
+                🏠 Player belongs to <strong>{teams.find((t) => t.id === formData.belongingTeamId)?.name}</strong>.
+                <span className="text-slate-400 block mt-0.5">
+                  <em>Note: This is an auction tournament, hence this player is in the open draft pool and can be bid on and played by ANY team!</em>
+                </span>
               </span>
             ) : (
-              <span>New player (not yet decided to add in a team). Shuffled into the pool and can be bid on and played by any team.</span>
+              <span className="text-slate-400">
+                🌐 Independent talent (No home club affiliation). Placed in open pool and can be bid on by any team.
+              </span>
             )}
           </p>
+        </div>
+
+        {/* OPTION 2: PLAYER SOLD TO (TOURNAMENT DRAFTED TEAM & SQUAD STATUS) */}
+        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-950/30 to-slate-950/80 border border-emerald-500/30 space-y-3">
+          <label className="block text-xs font-bold text-white flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Trophy className="w-4 h-4 text-emerald-400" />
+              <span>Option 2: Player Sold To (Tournament Drafted Team)</span>
+            </span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+              formData.soldToTeamId
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                : 'bg-slate-800 text-slate-400'
+            }`}>
+              {formData.soldToTeamId ? 'SOLD & DRAFTED' : 'UNASSIGNED / IN POOL'}
+            </span>
+          </label>
+
+          <div className="relative">
+            <select
+              value={formData.soldToTeamId}
+              onChange={(e) => setFormData({ ...formData, soldToTeamId: e.target.value })}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+            >
+              <option value="">-- Not Sold / In Open Pool (Upcoming in Auction) --</option>
+              {teams.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.shortName}) • Purse: {formatRupees(t.remainingPurse)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {formData.soldToTeamId ? (
+            <div className="space-y-2 pt-2 border-t border-slate-800/80">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                  <IndianRupee className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Final Transfer / Sold Price (₹)</span>
+                </label>
+                <span className="text-[10px] text-amber-300 font-mono">
+                  Price: ₹101 to ₹2,499
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="101"
+                  max="2499"
+                  step="50"
+                  value={formData.soldPrice}
+                  onChange={(e) => setFormData({ ...formData, soldPrice: Number(e.target.value) })}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                  placeholder="e.g. 500"
+                />
+
+                <div className="flex items-center gap-1">
+                  {[150, 200, 500, 1000, 2000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, soldPrice: preset })}
+                      className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition-all ${
+                        Number(formData.soldPrice) === preset
+                          ? 'bg-emerald-500 text-slate-950'
+                          : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700'
+                      }`}
+                    >
+                      {formatRupees(preset)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {(() => {
+                const targetTeam = teams.find((t) => t.id === formData.soldToTeamId);
+                const isSameTeam = Boolean(
+                  player.teamPlayer &&
+                  (player.teamPlayer.teamId === formData.soldToTeamId || player.teamPlayer.team?.id === formData.soldToTeamId)
+                );
+                const refund = isSameTeam && player.teamPlayer ? (player.teamPlayer.price || 0) : 0;
+                const effectivePurse = (targetTeam?.remainingPurse || 0) + refund;
+                const remAfter = effectivePurse - (Number(formData.soldPrice) || 0);
+                return (
+                  <div className="text-[10px] text-slate-400 flex items-center justify-between bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    <span>
+                      Team: <strong className="text-white">{targetTeam?.name}</strong>
+                    </span>
+                    <span className={remAfter < 0 ? 'text-rose-400 font-bold' : 'text-emerald-300 font-mono'}>
+                      Purse after draft: {formatRupees(remAfter)}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <p className="text-[11px] text-slate-500">
+              Player is not drafted to any squad yet. In the auction arena, they will remain in the UPCOMING queue.
+            </p>
+          )}
         </div>
 
         {/* Optional Career Stats Accordion */}

@@ -107,11 +107,8 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
         applyToExistingTeams,
       });
       await initState();
-      showToast('Settings saved! Refreshing page to update changes...', 'success');
+      showToast('Settings saved successfully!', 'success');
       onClose();
-      setTimeout(() => {
-        window.location.reload();
-      }, 300);
     } catch (err: any) {
       showToast(err.message || 'Failed to update settings', 'error');
     } finally {

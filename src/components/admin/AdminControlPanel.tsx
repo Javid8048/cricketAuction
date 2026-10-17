@@ -15,6 +15,7 @@ import {
   IndianRupee,
   AlertTriangle,
   Shuffle,
+  Clock,
 } from 'lucide-react';
 import { useAuctionStore } from '../../store/auction.store';
 import { api } from '../../services/api';
@@ -123,11 +124,29 @@ export const AdminControlPanel: React.FC = () => {
     ? selectedTargetTeam.remainingPurse - (Number(assignAmount) || 0)
     : 0;
 
+  const isTimerEnabled = auction?.timerEnabled !== false;
+  const timerSec = auction?.defaultTimerSec || 10;
+
+  const handleToggleTimer = async () => {
+    setLoadingAction(true);
+    try {
+      if (isStandaloneMode) {
+        await adminActionStandalone('update_settings', { timerEnabled: !isTimerEnabled });
+      } else {
+        await api.updateAuctionSettings({ timerEnabled: !isTimerEnabled });
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to toggle timer');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
   return (
     <div className="bg-[#121724] border border-amber-500/30 rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-md">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-800">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-800">
+        <div className="flex items-center gap-2 flex-wrap">
           <Shield className="w-5 h-5 text-amber-400" />
           <h3 className="text-sm sm:text-base font-extrabold text-white font-display uppercase tracking-wider">
             AUCTIONEER COMMAND DESK
@@ -135,10 +154,26 @@ export const AdminControlPanel: React.FC = () => {
           <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-semibold">
             COMMISSIONER ACCESS
           </span>
+
+          {/* Instant 1-Click BID Timer ON/OFF Toggle */}
+          <button
+            type="button"
+            onClick={handleToggleTimer}
+            disabled={loadingAction}
+            title={isTimerEnabled ? 'Click to switch to Manual Auction Mode (Timer Disabled)' : 'Click to enable countdown BID timer'}
+            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm active:scale-95 disabled:opacity-50 ${
+              isTimerEnabled
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
+                : 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25'
+            }`}
+          >
+            <Clock className={`w-3.5 h-3.5 ${isTimerEnabled ? 'text-emerald-400 animate-pulse' : 'text-rose-400'}`} />
+            <span>⏱️ Timer: {isTimerEnabled ? `ON (${timerSec}s)` : 'OFF (Manual)'}</span>
+          </button>
         </div>
 
         {/* Two Options Mode Toggle */}
-        <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 self-start lg:self-auto">
           <button
             type="button"
             onClick={() => setActiveTab('bidding')}

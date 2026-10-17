@@ -59,7 +59,8 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [teamFilter, setTeamFilter] = useState('ALL');
+  const [belongingTeamFilter, setBelongingTeamFilter] = useState('ALL');
+  const [soldToTeamFilter, setSoldToTeamFilter] = useState('ALL');
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [assignModalPlayerId, setAssignModalPlayerId] = useState<string | null>(null);
 
@@ -199,11 +200,19 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
     if (roleFilter !== 'ALL' && p.role !== roleFilter) return false;
     if (categoryFilter !== 'ALL' && p.category !== categoryFilter) return false;
     if (statusFilter !== 'ALL' && p.status !== statusFilter) return false;
-    if (teamFilter !== 'ALL') {
-      if (teamFilter === 'NONE') {
+    if (belongingTeamFilter !== 'ALL') {
+      if (belongingTeamFilter === 'NONE') {
         if (p.belongingTeamId || p.belongingTeam) return false;
       } else {
-        if (p.belongingTeamId !== teamFilter && p.belongingTeam?.id !== teamFilter) return false;
+        if (p.belongingTeamId !== belongingTeamFilter && p.belongingTeam?.id !== belongingTeamFilter) return false;
+      }
+    }
+    if (soldToTeamFilter !== 'ALL') {
+      if (soldToTeamFilter === 'NONE') {
+        if (p.status === 'SOLD' || p.teamPlayer?.team) return false;
+      } else {
+        const soldTeamId = p.teamPlayer?.team?.id || p.teamPlayer?.teamId;
+        if (p.status !== 'SOLD' || soldTeamId !== soldToTeamFilter) return false;
       }
     }
     return true;
@@ -414,15 +423,32 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
 
           {/* Belonging Team Filter */}
           <select
-            value={teamFilter}
-            onChange={(e) => setTeamFilter(e.target.value)}
+            value={belongingTeamFilter}
+            onChange={(e) => setBelongingTeamFilter(e.target.value)}
             className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+            title="Filter by Player Belongs To (Home Team Affiliation)"
           >
-            <option value="ALL">All Belonging Teams</option>
+            <option value="ALL">🏠 Belongs to: All Teams</option>
             <option value="NONE">Independent / Free Agents</option>
             {teams.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.name} ({t.shortName})
+                🏠 Belongs to: {t.name} ({t.shortName})
+              </option>
+            ))}
+          </select>
+
+          {/* Sold To Team Filter */}
+          <select
+            value={soldToTeamFilter}
+            onChange={(e) => setSoldToTeamFilter(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+            title="Filter by Player Sold To (Tournament Drafted Team)"
+          >
+            <option value="ALL">🏆 Sold to: All Teams</option>
+            <option value="NONE">Not Sold / In Open Pool</option>
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                🏆 Sold to: {t.name} ({t.shortName})
               </option>
             ))}
           </select>
@@ -527,19 +553,22 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
                             backgroundColor: `${p.belongingTeam.primaryColor}20`,
                             color: p.belongingTeam.primaryColor,
                           }}
-                          title={`Belongs to ${p.belongingTeam.name} (Can be bid on by any team)`}
+                          title={`Belongs to ${p.belongingTeam.name} (Can be bid on and played by any team in auction)`}
                         >
                           <Shield className="w-2.5 h-2.5 shrink-0" />
-                          <span className="truncate">Home: {p.belongingTeam.name}</span>
+                          <span className="truncate">Belongs to: {p.belongingTeam.name}</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 font-medium">
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 font-medium"
+                          title="Independent talent / Free Agent (Can be bid on by any team)"
+                        >
                           <Shield className="w-2.5 h-2.5 text-slate-600" />
-                          <span>Independent</span>
+                          <span>Belongs to: Independent</span>
                         </span>
                       )}
 
-                      {p.status === 'SOLD' && p.teamPlayer?.team && (
+                      {p.status === 'SOLD' && p.teamPlayer?.team ? (
                         <span
                           className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"
                           style={{
@@ -547,10 +576,17 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
                             backgroundColor: `${p.teamPlayer.team.primaryColor}30`,
                             color: p.teamPlayer.team.primaryColor,
                           }}
-                          title={`Won in auction by ${p.teamPlayer.team.name}`}
+                          title={`Drafted & Sold to ${p.teamPlayer.team.name} for ${formatRupees(p.teamPlayer.price || p.currentPrice || 0)}`}
                         >
-                          <Shield className="w-2.5 h-2.5 shrink-0" />
-                          <span className="truncate">Drafted: {p.teamPlayer.team.name}</span>
+                          <Award className="w-2.5 h-2.5 shrink-0" />
+                          <span className="truncate">Sold to: {p.teamPlayer.team.name}</span>
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800/80 font-medium"
+                          title="Not sold yet. In open auction pool."
+                        >
+                          <span>Sold to: Not Sold (In Pool)</span>
                         </span>
                       )}
                     </div>

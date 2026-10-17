@@ -68,6 +68,35 @@ const mergeIncomingState = (incoming: AuctionState, curState: AuctionState | nul
 };
 
 let standaloneInterval: any = null;
+let clientLiveInterval: any = null;
+
+const stopClientLiveTicker = () => {
+  if (clientLiveInterval) {
+    clearInterval(clientLiveInterval);
+    clientLiveInterval = null;
+  }
+};
+
+const startClientLiveTicker = (get: any, set: any) => {
+  stopClientLiveTicker();
+  clientLiveInterval = setInterval(() => {
+    const { secondsLeft, state } = get();
+    if (!state || state.auction.status !== 'ACTIVE' || state.auction.timerEnabled === false) {
+      stopClientLiveTicker();
+      return;
+    }
+    if (secondsLeft <= 0) {
+      stopClientLiveTicker();
+      return;
+    }
+    const next = secondsLeft - 1;
+    set({
+      secondsLeft: next,
+      isTimerWarning: next <= 5 && next > 0,
+      isTimerUrgent: next <= 3 && next > 0,
+    });
+  }, 1000);
+};
 
 export const useAuctionStore = create<AuctionStore>((set, get) => ({
   state: null,
@@ -276,12 +305,19 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:init', (data: AuctionState) => {
+      const merged = mergeState(data);
+      const sec = data.auction?.secondsLeft ?? 10;
       set({
-        state: mergeState(data),
-        secondsLeft: data.auction?.secondsLeft ?? 10,
+        state: merged,
+        secondsLeft: sec,
         isConnected: true,
         isStandaloneMode: false,
       });
+      if (merged.auction?.status === 'ACTIVE' && merged.auction?.timerEnabled !== false && sec > 0) {
+        startClientLiveTicker(get, set);
+      } else {
+        stopClientLiveTicker();
+      }
     });
 
     socket.on('auction:players_updated', (data: { players?: Player[] } | Player[]) => {
@@ -294,32 +330,48 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:started', (data: AuctionState) => {
-      set({ state: mergeState(data) });
+      const merged = mergeState(data);
+      set({ state: merged });
       get().showToast('Auction started!', 'success');
+      if (merged.auction?.timerEnabled !== false) {
+        startClientLiveTicker(get, set);
+      }
     });
 
     socket.on('auction:paused', (data: AuctionState) => {
+      stopClientLiveTicker();
       set({ state: mergeState(data) });
       get().showToast('Auction paused by admin', 'info');
     });
 
     socket.on('auction:resumed', (data: AuctionState) => {
-      set({ state: mergeState(data) });
+      const merged = mergeState(data);
+      set({ state: merged });
       get().showToast('Auction resumed', 'info');
+      if (merged.auction?.status === 'ACTIVE' && merged.auction?.timerEnabled !== false) {
+        startClientLiveTicker(get, set);
+      }
     });
 
     socket.on('auction:player', (data: AuctionState) => {
+      stopClientLiveTicker();
+      const merged = mergeState(data);
+      const sec = data.auction?.secondsLeft ?? 10;
       set({
-        state: mergeState(data),
-        secondsLeft: data.auction?.secondsLeft ?? 10,
+        state: merged,
+        secondsLeft: sec,
         soldOverlay: null,
         unsoldOverlay: null,
       });
+      if (merged.auction?.status === 'ACTIVE' && merged.auction?.timerEnabled !== false && sec > 0) {
+        startClientLiveTicker(get, set);
+      }
       get().showToast(`Up next: ${data.activePlayer?.name}`, 'info');
     });
 
     socket.on('auction:timer', (data: { secondsLeft: number | null; warning?: boolean; urgent?: boolean; timerEnabled?: boolean }) => {
-      if (data.timerEnabled === false) {
+      if (data.timerEnabled === false || data.secondsLeft === null) {
+        stopClientLiveTicker();
         set({
           secondsLeft: 0,
           isTimerWarning: false,
@@ -328,10 +380,11 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         return;
       }
 
+      const sec = Math.max(0, data.secondsLeft);
       set({
-        secondsLeft: data.secondsLeft ?? 0,
-        isTimerWarning: Boolean(data.warning),
-        isTimerUrgent: Boolean(data.urgent),
+        secondsLeft: sec,
+        isTimerWarning: Boolean(data.warning) || (sec <= 5 && sec > 0),
+        isTimerUrgent: Boolean(data.urgent) || (sec <= 3 && sec > 0),
       });
 
       if (data.urgent) {
@@ -339,19 +392,32 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       } else if (data.warning) {
         sound.playTimerTick();
       }
+
+      if (sec > 0) {
+        startClientLiveTicker(get, set);
+      } else {
+        stopClientLiveTicker();
+      }
     });
 
     socket.on('auction:settings_updated', (data: any) => {
       if (data && Array.isArray(data.teams)) {
+        const isTimerOff = data.auction?.timerEnabled === false;
+        if (isTimerOff) {
+          stopClientLiveTicker();
+        }
         set({
           state: mergeState(data),
-          secondsLeft: data.auction?.timerEnabled === false ? 0 : (data.auction?.secondsLeft ?? get().secondsLeft),
+          secondsLeft: isTimerOff ? 0 : (data.auction?.secondsLeft ?? get().secondsLeft),
           isTimerWarning: false,
           isTimerUrgent: false,
         });
+        if (!isTimerOff && data.auction?.status === 'ACTIVE') {
+          startClientLiveTicker(get, set);
+        }
         if (data.auction) {
           get().showToast(
-            `Auction settings updated: Timer is ${data.auction?.timerEnabled === false ? 'OFF (Manual Mode)' : 'ON'}`,
+            `Auction settings updated: Timer is ${isTimerOff ? 'OFF (Manual Mode)' : 'ON'}`,
             'info'
           );
         }
@@ -362,13 +428,19 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:bid', (data: { bid: Bid; amount: number; teamName: string; playerName: string; state: AuctionState }) => {
+      stopClientLiveTicker();
+      const sec = data.state.auction?.secondsLeft ?? 10;
       set({
         state: mergeState(data.state),
-        secondsLeft: data.state.auction?.secondsLeft ?? 10,
+        secondsLeft: sec,
         isTimerWarning: false,
         isTimerUrgent: false,
         lastBidFlash: true,
       });
+
+      if (data.state.auction?.status === 'ACTIVE' && data.state.auction?.timerEnabled !== false && sec > 0) {
+        startClientLiveTicker(get, set);
+      }
 
       sound.playBidChime();
 
@@ -380,13 +452,18 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:timer_ended_manual', (data: { message: string }) => {
+      stopClientLiveTicker();
       sound.playTimerTick();
       get().showToast(data.message || 'Timer ended! Waiting for Admin confirmation to Sell or Mark Unsold.', 'info');
     });
 
     socket.on('auction:sold', (data: any) => {
+      stopClientLiveTicker();
       set({
         state: mergeState(data.state),
+        secondsLeft: 0,
+        isTimerWarning: false,
+        isTimerUrgent: false,
         soldOverlay: {
           player: data.player,
           winningTeam: data.winningTeam,
@@ -414,8 +491,12 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:unsold', (data: any) => {
+      stopClientLiveTicker();
       set({
         state: mergeState(data.state),
+        secondsLeft: 0,
+        isTimerWarning: false,
+        isTimerUrgent: false,
         unsoldOverlay: {
           player: data.player,
           basePrice: data.basePrice,
@@ -432,6 +513,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:reset', (data: AuctionState) => {
+      stopClientLiveTicker();
       set({
         state: mergeState(data),
         secondsLeft: 10,
@@ -442,7 +524,8 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:ended', (data: { message: string; state: AuctionState }) => {
-      set({ state: mergeState(data.state) });
+      stopClientLiveTicker();
+      set({ state: mergeState(data.state), secondsLeft: 0 });
       get().showToast(data.message, 'info');
     });
   },
