@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Key, Eye, EyeOff, Copy, Check, Edit2, X, Search, RefreshCw, UserCheck } from 'lucide-react';
+import { Shield, Key, Eye, EyeOff, Copy, Check, Edit2, X, Search, RefreshCw, UserCheck, Trash2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuctionStore } from '../../store/auction.store';
 
@@ -27,7 +27,7 @@ export const FranchiseCredentialsModal: React.FC<FranchiseCredentialsModalProps>
   onClose,
   onOpenCreateTeam,
 }) => {
-  const { showToast } = useAuctionStore();
+  const { showToast, deleteTeam } = useAuctionStore();
   const [credentials, setCredentials] = useState<FranchiseCredential[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,7 +46,7 @@ export const FranchiseCredentialsModal: React.FC<FranchiseCredentialsModalProps>
       const data = await api.getFranchiseCredentials();
       setCredentials(data || []);
     } catch (err: any) {
-      showToast(err.message || 'Failed to load franchise credentials.', 'error');
+      showToast(err.message || 'Failed to load team credentials.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -106,6 +106,16 @@ export const FranchiseCredentialsModal: React.FC<FranchiseCredentialsModalProps>
     }
   };
 
+  const handleDeleteTeam = async (team: FranchiseCredential) => {
+    if (!window.confirm(`Are you sure you want to delete ${team.name}? Any signed players will be returned to the draft pool.`)) return;
+    try {
+      await deleteTeam(team.id);
+      await fetchCredentials();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete team.', 'error');
+    }
+  };
+
   const filteredCredentials = credentials.filter((t) => {
     const term = searchTerm.toLowerCase();
     return (
@@ -127,13 +137,13 @@ export const FranchiseCredentialsModal: React.FC<FranchiseCredentialsModalProps>
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                Franchise Login Credentials
+                Team Login Credentials Table
                 <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-mono">
                   {credentials.length} Teams
                 </span>
               </h3>
               <p className="text-xs text-slate-400">
-                Admin master view of franchise portal credentials. View, copy, or edit logins anytime.
+                Admin master view of team portal credentials. View, copy, or edit logins anytime.
               </p>
             </div>
           </div>
@@ -178,7 +188,7 @@ export const FranchiseCredentialsModal: React.FC<FranchiseCredentialsModalProps>
                 className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all"
               >
                 <Shield className="w-3.5 h-3.5" />
-                Add Franchise
+                Add Team
               </button>
             )}
           </div>
@@ -189,15 +199,15 @@ export const FranchiseCredentialsModal: React.FC<FranchiseCredentialsModalProps>
           {filteredCredentials.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-xs">
               {credentials.length === 0
-                ? 'No franchises found. Click "Add Franchise" to create your first team with custom login credentials.'
-                : 'No franchises match your search query.'}
+                ? 'No teams found. Click "Add Team" to create your first team with custom login credentials.'
+                : 'No teams match your search query.'}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-900/90 text-slate-400 border-b border-slate-800 font-semibold sticky top-0">
                   <tr>
-                    <th className="py-3 px-3">Franchise</th>
+                    <th className="py-3 px-3">Team</th>
                     <th className="py-3 px-3">Owner & Phone</th>
                     <th className="py-3 px-3">Username</th>
                     <th className="py-3 px-3">Password</th>
@@ -290,15 +300,25 @@ export const FranchiseCredentialsModal: React.FC<FranchiseCredentialsModalProps>
                           )}
                         </td>
 
-                        {/* Action: Edit Credentials */}
+                        {/* Action: Edit & Delete */}
                         <td className="py-3 px-3 text-right">
-                          <button
-                            onClick={() => handleStartEdit(team)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-[11px] font-medium inline-flex items-center gap-1 transition-colors"
-                          >
-                            <Edit2 className="w-3 h-3 text-amber-400" />
-                            Edit
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleStartEdit(team)}
+                              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-[11px] font-medium inline-flex items-center gap-1 transition-colors"
+                              title="Edit Credentials"
+                            >
+                              <Edit2 className="w-3 h-3 text-amber-400" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTeam(team)}
+                              className="p-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
+                              title={`Delete ${team.name}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -329,7 +349,7 @@ export const FranchiseCredentialsModal: React.FC<FranchiseCredentialsModalProps>
               <div className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Franchise Login Username
+                    Team Login Username
                   </label>
                   <input
                     type="text"
@@ -342,7 +362,7 @@ export const FranchiseCredentialsModal: React.FC<FranchiseCredentialsModalProps>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Franchise Login Password
+                    Team Login Password
                   </label>
                   <input
                     type="text"
@@ -381,7 +401,7 @@ export const FranchiseCredentialsModal: React.FC<FranchiseCredentialsModalProps>
         {/* Footer */}
         <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-800 shrink-0">
           <p className="text-[11px] text-slate-500">
-            💡 Share these credentials directly with each team owner for private franchise portal access.
+            💡 Share these credentials directly with each team owner for private team portal access.
           </p>
           <button
             onClick={onClose}

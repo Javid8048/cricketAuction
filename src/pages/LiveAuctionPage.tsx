@@ -6,6 +6,7 @@ import { TeamStatusPanel } from '../components/auction/TeamStatusPanel';
 import { AuctionTimeline } from '../components/auction/AuctionTimeline';
 import { AdminControlPanel } from '../components/admin/AdminControlPanel';
 import { PlayerProfileModal } from '../components/player/PlayerProfileModal';
+import { SpectatorHoldingsHub } from '../components/auction/SpectatorHoldingsHub';
 import { useAuctionStore } from '../store/auction.store';
 import { useAuthStore } from '../store/auth.store';
 
@@ -37,7 +38,7 @@ export const LiveAuctionPage: React.FC = () => {
           <LiveBiddingArea />
         </div>
 
-        {/* Right: Franchises Status Standings (3 Cols on desktop) */}
+        {/* Right: Teams Status Standings (3 Cols on desktop) */}
         <div className="lg:col-span-3 xl:col-span-3 flex flex-col">
           <TeamStatusPanel />
         </div>
@@ -45,6 +46,11 @@ export const LiveAuctionPage: React.FC = () => {
 
       {/* Bottom Ticker: Real-time Timeline */}
       <AuctionTimeline />
+
+      {/* Real-time Spectator Holdings Hub (Teams & Squad Holdings + Player Draft Pool) */}
+      <SpectatorHoldingsHub
+        onViewPlayerProfile={(id) => setProfileModalPlayerId(id)}
+      />
 
       {/* Admin Command Desk (always accessible to admin below arena) */}
       {isAdmin && (

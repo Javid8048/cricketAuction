@@ -16,6 +16,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { useAuctionStore } from '../../store/auction.store';
 import { formatRupees } from '../../utils/currency';
 import { compressImageFile, formatBytes, CompressionResult } from '../../utils/imageCompressor';
 
@@ -219,6 +220,7 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
 
       const res = await api.registerPlayerPublic(payload);
       setRegisteredPlayer(res.player);
+      useAuctionStore.getState().refreshPlayers();
     } catch (err: any) {
       setApiError(err.message || 'Failed to submit registration. Please try again.');
     } finally {

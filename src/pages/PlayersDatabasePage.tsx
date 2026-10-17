@@ -1,21 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, Plus, Globe, Award, Info, Trash2, Edit, Star, MapPin, Users } from 'lucide-react';
+import { Search, Filter, Plus, Globe, Award, Info, Trash2, Edit, Star, MapPin, Users, UserCheck } from 'lucide-react';
 import { api } from '../services/api';
 import { Player } from '../types';
 import { formatRupees } from '../utils/currency';
 import { PlayerProfileModal } from '../components/player/PlayerProfileModal';
 import { Modal } from '../components/common/Modal';
+import { ManualAssignPlayerModal } from '../components/admin/ManualAssignPlayerModal';
 import { useAuthStore } from '../store/auth.store';
+import { useAuctionStore } from '../store/auction.store';
 
-export const PlayersDatabasePage: React.FC = () => {
+interface PlayersDatabasePageProps {
+  onNavigateToRegister?: () => void;
+}
+
+export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({ onNavigateToRegister }) => {
   const { user } = useAuthStore();
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
+  const storePlayers = useAuctionStore((s) => s.state?.players);
+  const [players, setPlayers] = useState<Player[]>(storePlayers || []);
+  const [loading, setLoading] = useState(!storePlayers || storePlayers.length === 0);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [assignModalPlayerId, setAssignModalPlayerId] = useState<string | null>(null);
 
   // New Player Modal for Admin
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -43,7 +51,10 @@ export const PlayersDatabasePage: React.FC = () => {
     setLoading(true);
     api
       .getPlayers()
-      .then(setPlayers)
+      .then((data) => {
+        setPlayers(data);
+        useAuctionStore.getState().refreshPlayers();
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
@@ -51,6 +62,13 @@ export const PlayersDatabasePage: React.FC = () => {
   useEffect(() => {
     loadPlayers();
   }, []);
+
+  useEffect(() => {
+    if (storePlayers && storePlayers.length > 0) {
+      setPlayers(storePlayers);
+      setLoading(false);
+    }
+  }, [storePlayers]);
 
   const filteredPlayers = players.filter((p) => {
     if (search.trim()) {
@@ -87,6 +105,7 @@ export const PlayersDatabasePage: React.FC = () => {
     try {
       await api.deletePlayer(id);
       loadPlayers();
+      useAuctionStore.getState().refreshPlayers();
     } catch (err: any) {
       alert(err.message);
     }
@@ -101,17 +120,23 @@ export const PlayersDatabasePage: React.FC = () => {
             PLAYER REGISTRY ({players.length})
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Complete registered cricketer pool available for the auction franchise draft.
+            Complete registered cricketer pool available for the auction player draft.
           </p>
         </div>
 
         {isAdmin && (
           <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-transform active:scale-95"
+            onClick={() => {
+              if (onNavigateToRegister) {
+                onNavigateToRegister();
+              } else {
+                setIsCreateModalOpen(true);
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-transform active:scale-95 shadow-md shadow-amber-500/20"
           >
             <Plus className="w-4 h-4" />
-            Add New Player
+            <span>Register New Player</span>
           </button>
         )}
       </div>
@@ -279,14 +304,25 @@ export const PlayersDatabasePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-4 pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2">
+              <div className="mt-4 pt-2 border-t border-slate-800/60 flex items-center justify-between gap-1.5">
                 <button
                   onClick={() => setSelectedPlayerId(p.id)}
-                  className="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-medium flex items-center justify-center gap-1.5 transition-colors"
+                  className="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-medium flex items-center justify-center gap-1 transition-colors"
                 >
                   <Info className="w-3.5 h-3.5 text-amber-400" />
-                  <span>View Dossier</span>
+                  <span>Dossier</span>
                 </button>
+
+                {isAdmin && (
+                  <button
+                    onClick={() => setAssignModalPlayerId(p.id)}
+                    className="py-1.5 px-2.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                    title="Sold To: Manually assign player to team"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Sold To</span>
+                  </button>
+                )}
 
                 {isAdmin && (
                   <button
@@ -419,6 +455,14 @@ export const PlayersDatabasePage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Admin Manual Assign Player to Team Modal */}
+      <ManualAssignPlayerModal
+        isOpen={Boolean(assignModalPlayerId)}
+        onClose={() => setAssignModalPlayerId(null)}
+        defaultPlayerId={assignModalPlayerId}
+        onSuccess={loadPlayers}
+      />
     </div>
   );
 };

@@ -232,6 +232,15 @@ class ApiService {
     return this.handleResponse<any>(res);
   }
 
+  async manuallyAssignPlayer(playerId: string, teamId: string, amount: number) {
+    const res = await fetch(`${getApiBaseUrl()}/auction/assign-player`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ playerId, teamId, amount }),
+    });
+    return this.handleResponse<any>(res);
+  }
+
   async markUnsold() {
     const res = await fetch(`${getApiBaseUrl()}/auction/unsold`, {
       method: 'POST',
@@ -332,6 +341,14 @@ class ApiService {
 
   async deleteTeam(id: string) {
     const res = await fetch(`${getApiBaseUrl()}/teams/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse<any>(res);
+  }
+
+  async deleteAllTeams() {
+    const res = await fetch(`${getApiBaseUrl()}/teams/all`, {
       method: 'DELETE',
       headers: this.getHeaders(),
     });

@@ -45,7 +45,26 @@ interface AuctionStore {
   startStandaloneTimer: () => void;
   stopStandaloneTimer: () => void;
   adminActionStandalone: (action: string, payload?: any) => Promise<void>;
+  manuallyAssignPlayer: (playerId: string, teamId: string, amount: number) => Promise<void>;
+  refreshPlayers: () => Promise<void>;
+  deleteTeam: (teamId: string) => Promise<void>;
+  deleteAllTeams: () => Promise<void>;
 }
+
+const mergeIncomingState = (incoming: AuctionState, curState: AuctionState | null): AuctionState => {
+  if (!incoming) return curState as any;
+  const players = incoming.players && incoming.players.length > 0
+    ? incoming.players
+    : (curState?.players && curState.players.length > 0 ? curState.players : []);
+  const teams = incoming.teams && incoming.teams.length > 0
+    ? incoming.teams
+    : (curState?.teams && curState.teams.length > 0 ? curState.teams : []);
+  return {
+    ...incoming,
+    players,
+    teams,
+  };
+};
 
 let standaloneInterval: any = null;
 
@@ -135,8 +154,17 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
   initState: async () => {
     try {
       const data = await api.getCurrentAuction();
+      let playersList = data.players;
+      if (!playersList || playersList.length === 0) {
+        try {
+          playersList = await api.getPlayers();
+        } catch (e) {}
+      }
       set({
-        state: data,
+        state: {
+          ...data,
+          players: playersList || [],
+        },
         secondsLeft: data.auction?.secondsLeft ?? 10,
         isConnected: true,
         isStandaloneMode: false,
@@ -191,32 +219,43 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:init', (data: AuctionState) => {
+      const merged = mergeIncomingState(data, get().state);
       set({
-        state: data,
+        state: merged,
         secondsLeft: data.auction?.secondsLeft ?? 10,
         isConnected: true,
         isStandaloneMode: false,
       });
     });
 
+    socket.on('auction:players_updated', (data: { players?: Player[] } | Player[]) => {
+      const playersList = Array.isArray(data) ? data : data?.players;
+      if (playersList && Array.isArray(playersList)) {
+        set((s) => ({
+          state: s.state ? { ...s.state, players: playersList } : null,
+        }));
+      }
+    });
+
     socket.on('auction:started', (data: AuctionState) => {
-      set({ state: data });
+      set({ state: mergeIncomingState(data, get().state) });
       get().showToast('Auction started!', 'success');
     });
 
     socket.on('auction:paused', (data: AuctionState) => {
-      set({ state: data });
+      set({ state: mergeIncomingState(data, get().state) });
       get().showToast('Auction paused by admin', 'info');
     });
 
     socket.on('auction:resumed', (data: AuctionState) => {
-      set({ state: data });
+      set({ state: mergeIncomingState(data, get().state) });
       get().showToast('Auction resumed', 'info');
     });
 
     socket.on('auction:player', (data: AuctionState) => {
+      const merged = mergeIncomingState(data, get().state);
       set({
-        state: data,
+        state: merged,
         secondsLeft: data.auction?.secondsLeft ?? 10,
         soldOverlay: null,
         unsoldOverlay: null,
@@ -239,8 +278,9 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:bid', (data: { bid: Bid; amount: number; teamName: string; playerName: string; state: AuctionState }) => {
+      const merged = mergeIncomingState(data.state, get().state);
       set({
-        state: data.state,
+        state: merged,
         secondsLeft: data.state.auction?.secondsLeft ?? 10,
         isTimerWarning: false,
         isTimerUrgent: false,
@@ -262,8 +302,9 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:sold', (data: any) => {
+      const merged = mergeIncomingState(data.state, get().state);
       set({
-        state: data.state,
+        state: merged,
         soldOverlay: {
           player: data.player,
           winningTeam: data.winningTeam,
@@ -291,8 +332,9 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:unsold', (data: any) => {
+      const merged = mergeIncomingState(data.state, get().state);
       set({
-        state: data.state,
+        state: merged,
         unsoldOverlay: {
           player: data.player,
           basePrice: data.basePrice,
@@ -309,8 +351,9 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:reset', (data: AuctionState) => {
+      const merged = mergeIncomingState(data, get().state);
       set({
-        state: data,
+        state: merged,
         secondsLeft: 10,
         soldOverlay: null,
         unsoldOverlay: null,
@@ -319,7 +362,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     });
 
     socket.on('auction:ended', (data: { message: string; state: AuctionState }) => {
-      set({ state: data.state });
+      set({ state: mergeIncomingState(data.state, get().state) });
       get().showToast(data.message, 'info');
     });
   },
@@ -618,5 +661,186 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         get().startStandaloneTimer();
       }
     }
+  },
+
+  manuallyAssignPlayer: async (playerId: string, teamId: string, amount: number) => {
+    if (isNaN(amount) || amount <= 100 || amount >= 2500) {
+      const err = new Error('Price must be greater than ₹100 and less than ₹2,500.');
+      get().showToast(err.message, 'error');
+      throw err;
+    }
+    const { isStandaloneMode, state } = get();
+    if (!isStandaloneMode) {
+      try {
+        const res = await api.manuallyAssignPlayer(playerId, teamId, amount);
+        sound.playGavelSound();
+        try {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#f59e0b', '#10b981', '#3b82f6', '#ffffff'],
+          });
+        } catch (e) {}
+        get().showToast(res.message || `Player assigned successfully for ${formatRupees(amount)}!`, 'success');
+        await get().initState();
+      } catch (err: any) {
+        get().showToast(err.message || 'Failed to assign player', 'error');
+        throw err;
+      }
+      return;
+    }
+
+    if (!state) return;
+    const team = state.teams.find((t) => t.id === teamId);
+    if (!team) throw new Error('Franchise not found');
+    if (team.remainingPurse < amount) {
+      throw new Error(`Insufficient purse! ${team.name} has only ${formatRupees(team.remainingPurse)} remaining.`);
+    }
+
+    const targetPlayer = INITIAL_PLAYERS.find((p) => p.id === playerId) || state.activePlayer || ({
+      id: playerId,
+      name: 'Assigned Player',
+      status: 'SOLD',
+    } as any as Player);
+
+    const updatedTeams: Team[] = state.teams.map((t) => {
+      if (t.id === teamId) {
+        const newPurse = t.remainingPurse - amount;
+        return {
+          ...t,
+          remainingPurse: newPurse,
+          squadSize: (t.squadSize || 0) + 1,
+          squad: [
+            ...(t.squad || []),
+            {
+              id: `sp-${Date.now()}`,
+              price: amount,
+              player: { ...targetPlayer, status: 'SOLD' as any },
+            },
+          ],
+        };
+      }
+      return t;
+    });
+
+    const activeP = state.activePlayer;
+    if (activeP && activeP.id === playerId) {
+      set({
+        state: { ...state, teams: updatedTeams },
+        soldOverlay: {
+          player: activeP,
+          winningTeam: team,
+          finalPrice: amount,
+          formattedPrice: formatRupees(amount),
+        },
+      });
+      sound.playGavelSound();
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#f59e0b', '#10b981', '#3b82f6', '#ffffff'],
+        });
+      } catch (e) {}
+      setTimeout(() => {
+        get().adminActionStandalone('next');
+      }, 4000);
+    } else {
+      set({ state: { ...state, teams: updatedTeams } });
+      sound.playGavelSound();
+      get().showToast(`Player assigned to ${team.name} for ${formatRupees(amount)}!`, 'success');
+    }
+  },
+
+  refreshPlayers: async () => {
+    try {
+      const playersList = await api.getPlayers();
+      set((s) => ({
+        state: s.state
+          ? { ...s.state, players: playersList }
+          : {
+              auction: {
+                id: 'auction-mega-2026',
+                name: 'Premier Cricket Mega Auction 2026',
+                status: 'IDLE',
+                currentRound: 1,
+                defaultTimerSec: 10,
+                activePlayerId: null,
+                activePlayerPrice: 100,
+                highestBidTeamId: null,
+                secondsLeft: 10,
+              },
+              activePlayer: null,
+              highestBidTeam: null,
+              currentBid: 100,
+              secondsLeft: 10,
+              teams: [],
+              players: playersList,
+              recentBids: [],
+              minIncrement: 100,
+            },
+      }));
+    } catch (e) {}
+  },
+
+  deleteTeam: async (teamId: string) => {
+    const { isStandaloneMode, state } = get();
+    if (!isStandaloneMode) {
+      try {
+        const res = await api.deleteTeam(teamId);
+        get().showToast(res.message || 'Team deleted successfully.', 'success');
+        await get().initState();
+      } catch (err: any) {
+        get().showToast(err.message || 'Failed to delete team.', 'error');
+        throw err;
+      }
+      return;
+    }
+
+    if (!state) return;
+    const remainingTeams = state.teams.filter((t) => t.id !== teamId);
+    set({
+      state: {
+        ...state,
+        teams: remainingTeams,
+        highestBidTeam: state.highestBidTeam?.id === teamId ? null : state.highestBidTeam,
+        auction: {
+          ...state.auction,
+          highestBidTeamId: state.auction?.highestBidTeamId === teamId ? null : state.auction?.highestBidTeamId,
+        },
+      },
+    });
+    get().showToast('Team deleted successfully.', 'success');
+  },
+
+  deleteAllTeams: async () => {
+    const { isStandaloneMode, state } = get();
+    if (!isStandaloneMode) {
+      try {
+        const res = await api.deleteAllTeams();
+        get().showToast(res.message || 'All teams deleted successfully.', 'success');
+        await get().initState();
+      } catch (err: any) {
+        get().showToast(err.message || 'Failed to delete all teams.', 'error');
+        throw err;
+      }
+      return;
+    }
+
+    if (!state) return;
+    set({
+      state: {
+        ...state,
+        teams: [],
+        highestBidTeam: null,
+        auction: {
+          ...state.auction,
+          highestBidTeamId: null,
+        },
+      },
+    });
+    get().showToast('All teams deleted successfully.', 'success');
   },
 }));

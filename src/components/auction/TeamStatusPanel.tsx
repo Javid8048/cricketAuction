@@ -8,25 +8,27 @@ export const TeamStatusPanel: React.FC = () => {
 
   const teams = state?.teams || [];
   const highestBidTeamId = state?.auction?.highestBidTeamId;
+  const maxPurse = state?.auction?.defaultPurse || 15000;
 
   return (
     <div className="bg-[#121724]/95 border border-slate-800/90 rounded-2xl p-5 shadow-2xl flex flex-col h-full backdrop-blur-md">
       <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
         <div>
           <h3 className="text-sm font-extrabold text-white font-display uppercase tracking-wider">
-            FRANCHISE STANDINGS
+            TEAM STANDINGS
           </h3>
-          <span className="text-[11px] text-slate-400">8 Participating Franchises</span>
+          <span className="text-[11px] text-slate-400">{teams.length} Participating Teams</span>
         </div>
-        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono font-semibold">
-          MAX PURSE ₹100 Cr
+        <span className="text-[10px] px-2.5 py-1 rounded bg-slate-800/90 text-amber-400 font-mono font-bold border border-slate-700/60">
+          MAX PURSE {formatRupees(maxPurse)}
         </span>
       </div>
 
       <div className="space-y-2.5 overflow-y-auto max-h-[580px] pr-1">
         {teams.map((team) => {
           const isHighest = team.id === highestBidTeamId;
-          const pursePercent = Math.max(0, Math.min(100, (team.remainingPurse / team.totalPurse) * 100));
+          const teamTotal = team.totalPurse || maxPurse;
+          const pursePercent = teamTotal > 0 ? Math.max(0, Math.min(100, (team.remainingPurse / teamTotal) * 100)) : 100;
 
           return (
             <div

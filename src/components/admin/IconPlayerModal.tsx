@@ -131,7 +131,7 @@ export const IconPlayerModal: React.FC<IconPlayerModalProps> = ({
 
         {/* Team Selector Tabs */}
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Select Franchise:</label>
+          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Select Team:</label>
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
             {teams.map((t) => (
               <button

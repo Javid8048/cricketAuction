@@ -29,6 +29,7 @@ interface SidebarProps {
   onCloseMobile: () => void;
   layoutMode: 'topbar' | 'sidebar';
   onToggleLayoutMode: () => void;
+  isSpectatorMode?: boolean;
   onOpenAdminSettings?: () => void;
   onOpenIconModal?: () => void;
   onOpenTeamModal?: () => void;
@@ -44,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
   layoutMode,
   onToggleLayoutMode,
+  isSpectatorMode,
   onOpenAdminSettings,
   onOpenIconModal,
   onOpenCredentialsModal,
@@ -56,6 +58,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const auctionStatus = state?.auction?.status || 'IDLE';
   const playersCount = state?.players?.length || 0;
   const teamsCount = state?.teams?.length || 0;
+
+  React.useEffect(() => {
+    if (!state?.players || state.players.length === 0) {
+      useAuctionStore.getState().refreshPlayers();
+    }
+  }, [state?.players]);
 
   const handleNavClick = (tab: string) => {
     onSelectTab(tab);
@@ -123,11 +131,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
 
         <div className="pt-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-slate-500 px-3">
-          {isAuthenticated ? 'Tournament Arena' : 'Portal Access'}
+          {isAuthenticated ? 'Tournament Arena' : isSpectatorMode ? 'Spectator Arena' : 'Portal Access'}
         </div>
 
-        {/* If Not Authenticated: Show prompt or locked states */}
-        {!isAuthenticated ? (
+        {/* If Not Authenticated and Not in Spectator Mode: Show prompt or locked states */}
+        {!isAuthenticated && !isSpectatorMode ? (
           <div className="space-y-1">
             <button
               onClick={() => handleNavClick('login')}
@@ -141,7 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>Official Sign In</span>
             </button>
             <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-[11px] text-slate-400">
-              🔒 Sign in as Admin or Franchise Owner to access live bidding, team squads, and management.
+              🔒 Sign in as Admin or Team Owner to access live bidding, team squads, and management.
             </div>
           </div>
         ) : (
@@ -191,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2.5">
                 <Shield className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>Franchises</span>
+                <span>Teams</span>
               </div>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
                 {teamsCount}
@@ -243,36 +251,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span>Admin Analytics</span>
                 </button>
 
-                {onOpenCredentialsModal && (
-                  <button
-                    onClick={() => {
-                      onOpenCredentialsModal();
-                      onCloseMobile();
-                    }}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-amber-300 hover:bg-amber-500/10 border border-amber-500/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Key className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>Franchise Logins</span>
-                    </div>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono">
-                      Table
-                    </span>
-                  </button>
-                )}
-
-                {onOpenAdminSettings && (
-                  <button
-                    onClick={() => {
-                      onOpenAdminSettings();
-                      onCloseMobile();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors"
-                  >
-                    <Settings className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>Auction Settings</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => handleNavClick('settings')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                    currentTab === 'settings'
+                      ? 'bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <Settings className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Auction Settings</span>
+                </button>
 
                 {onOpenIconModal && (
                   <button
@@ -286,6 +275,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span>Icon Players (2 Max)</span>
                   </button>
                 )}
+              </div>
+            )}
+
+            {/* Spectator Sign In Option */}
+            {isSpectatorMode && !isAuthenticated && (
+              <div className="pt-3 border-t border-slate-800/80 space-y-2">
+                <div className="px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs flex items-center justify-between">
+                  <span className="font-mono text-[11px] font-bold">SPECTATOR MODE</span>
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                </div>
+                <button
+                  onClick={() => handleNavClick('login')}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 transition-all shadow-md shadow-amber-500/20 active:scale-95"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Team / Admin Sign In</span>
+                </button>
               </div>
             )}
           </div>

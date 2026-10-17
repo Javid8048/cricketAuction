@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Timer, ArrowUpRight, ShieldAlert, Sparkles, Check, AlertCircle } from 'lucide-react';
+import { Timer, ArrowUpRight, ShieldAlert, Sparkles, Check, AlertCircle, Zap } from 'lucide-react';
 import { useAuctionStore } from '../../store/auction.store';
 import { useAuthStore } from '../../store/auth.store';
 import { formatRupees } from '../../utils/currency';
+import { ManualAssignPlayerModal } from '../admin/ManualAssignPlayerModal';
 
 export const LiveBiddingArea: React.FC = () => {
   const {
@@ -18,6 +19,7 @@ export const LiveBiddingArea: React.FC = () => {
   const { user } = useAuthStore();
   const [customBidInput, setCustomBidInput] = useState('');
   const [biddingError, setBiddingError] = useState<string | null>(null);
+  const [isManualAssignOpen, setIsManualAssignOpen] = useState(false);
 
   const auction = state?.auction;
   const currentBid = state?.currentBid || 0;
@@ -96,7 +98,7 @@ export const LiveBiddingArea: React.FC = () => {
               CURRENT BID AMOUNT
             </span>
             <div className="text-[11px] text-slate-500 mt-0.5">
-              Live franchise bidding in progress
+              Live team bidding in progress
             </div>
           </div>
 
@@ -191,7 +193,7 @@ export const LiveBiddingArea: React.FC = () => {
       <div className="bg-[#161d2e] p-5 rounded-2xl border border-slate-800">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            PLACE FRANCHISE BID
+            PLACE TEAM BID
           </span>
 
           {userTeam && (
@@ -207,8 +209,8 @@ export const LiveBiddingArea: React.FC = () => {
             <p className="text-xs text-slate-300 font-medium">
               You are currently viewing in <span className="text-amber-400 font-bold">Spectator Mode</span>.
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">
-              Select a Team account from the "Switch Demo Role" dropdown at top to test live franchise bidding.
+            <p className="text-[11px] text-slate-400 mt-1">
+              Sign in with your Team credentials to participate in live bidding on this player.
             </p>
           </div>
         )}
@@ -284,9 +286,33 @@ export const LiveBiddingArea: React.FC = () => {
                 Custom Bid
               </button>
             </form>
+
+            {/* Admin Override: Manually assign player directly from bidding area */}
+            {isAdmin && activePlayer && (
+              <div className="mt-3.5 pt-3 border-t border-slate-800 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-medium">
+                  Commissioner Option 2:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsManualAssignOpen(true)}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+                >
+                  <Zap className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
+                  <span>Sold To Team (Manual Assign)</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Manual Assignment Modal */}
+      <ManualAssignPlayerModal
+        isOpen={isManualAssignOpen}
+        onClose={() => setIsManualAssignOpen(false)}
+        defaultPlayerId={activePlayer?.id}
+      />
     </div>
   );
 };

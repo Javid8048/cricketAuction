@@ -25,7 +25,7 @@ export const TeamDashboardPage: React.FC = () => {
   if (!user || user.role !== 'TEAM') {
     return (
       <div className="max-w-4xl mx-auto px-6 py-12 text-center text-slate-400">
-        Please log in with a Team Manager account to view the franchise command center.
+        Please log in with a Team account to view the team command center.
       </div>
     );
   }
@@ -33,7 +33,7 @@ export const TeamDashboardPage: React.FC = () => {
   if (loading || !team) {
     return (
       <div className="max-w-4xl mx-auto px-6 py-12 text-center text-slate-400">
-        Loading franchise squad records...
+        Loading team squad records...
       </div>
     );
   }
@@ -71,7 +71,7 @@ export const TeamDashboardPage: React.FC = () => {
           </div>
           <div>
             <div className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
-              FRANCHISE SQUAD ROSTER
+              TEAM SQUAD ROSTER
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white font-display">
               {team.name}
@@ -190,7 +190,7 @@ export const TeamDashboardPage: React.FC = () => {
 
           {squad.length === 0 ? (
             <div className="py-12 text-center text-xs text-slate-500 italic">
-              Your franchise has not won any player bids yet. Head over to the Live Arena to start bidding!
+              Your team has not won any player bids yet. Head over to the Live Arena to start bidding!
             </div>
           ) : (
             <div className="overflow-x-auto">

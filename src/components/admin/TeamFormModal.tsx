@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, X, Phone, MapPin, User, Coins, Users, Key, Lock, Eye, EyeOff } from 'lucide-react';
+import { Shield, X, Phone, MapPin, User, Coins, Users, Key, Lock, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { Team } from '../../types';
 import { api } from '../../services/api';
 import { useAuctionStore } from '../../store/auction.store';
@@ -12,7 +12,7 @@ interface TeamFormModalProps {
 }
 
 export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, teamToEdit }) => {
-  const { showToast, initState } = useAuctionStore();
+  const { showToast, initState, deleteTeam } = useAuctionStore();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -31,7 +31,27 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    if (!teamToEdit) return;
+    const squadCount = teamToEdit.squad?.length || 0;
+    const confirmMsg = squadCount > 0
+      ? `Are you sure you want to delete ${teamToEdit.name}? Its ${squadCount} rostered player(s) will be released back to the upcoming draft pool.`
+      : `Are you sure you want to delete ${teamToEdit.name}?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteTeam(teamToEdit.id);
+      onClose();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete team.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (teamToEdit) {
@@ -162,7 +182,7 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
             </div>
             <div>
               <h3 className="text-base font-bold text-white">
-                {teamToEdit ? `Edit Team: ${teamToEdit.name}` : 'Add New Franchise / Team'}
+                {teamToEdit ? `Edit Team: ${teamToEdit.name}` : 'Add New Team'}
               </h3>
               <p className="text-xs text-slate-400">Configure team profile, login credentials, purse, and limits</p>
             </div>
@@ -277,11 +297,11 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
             </div>
           </div>
 
-          {/* Franchise Login Credentials Box */}
+          {/* Team Login Credentials Box */}
           <div className="p-3.5 rounded-xl bg-slate-950/80 border border-amber-500/30 space-y-2.5">
             <div className="flex items-center gap-2 pb-1.5 border-b border-slate-800">
               <Key className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-xs font-bold text-amber-400">Franchise Login Portal Access</span>
+              <span className="text-xs font-bold text-amber-400">Team Login Portal Access</span>
               <span className="text-[10px] text-slate-500 ml-auto">(Admin Viewable & Editable)</span>
             </div>
 
@@ -342,7 +362,7 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
               </div>
             </div>
             <p className="text-[10px] text-slate-500">
-              Set the login username & password for the franchise owner. These will appear in the Admin Credentials table.
+              Set the login username & password for the team owner. These will appear in the Admin Credentials table.
             </p>
           </div>
 
@@ -424,21 +444,36 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all shadow-md shadow-amber-500/20 disabled:opacity-50"
-            >
-              {isSubmitting ? 'Saving...' : teamToEdit ? 'Save Changes' : 'Create Franchise'}
-            </button>
+          <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+            {teamToEdit ? (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting || isSubmitting}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 font-bold text-xs transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                <span>{isDeleting ? 'Deleting...' : 'Delete Team'}</span>
+              </button>
+            ) : <div />}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isDeleting || isSubmitting}
+                className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || isDeleting}
+                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all shadow-md shadow-amber-500/20 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Saving...' : teamToEdit ? 'Save Changes' : 'Create Team'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

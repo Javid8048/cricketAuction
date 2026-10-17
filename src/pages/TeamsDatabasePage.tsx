@@ -2,14 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { Team } from '../types';
 import { formatRupees } from '../utils/currency';
-import { Users, Globe, Trophy, Shield, Plus, Edit2, Star, Phone, MapPin, Key, Lock, Check } from 'lucide-react';
+import { Users, Globe, Trophy, Shield, Plus, Edit2, Star, Phone, MapPin, Key, Lock, Check, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
+import { useAuctionStore } from '../store/auction.store';
 import { TeamFormModal } from '../components/admin/TeamFormModal';
 import { IconPlayerModal } from '../components/admin/IconPlayerModal';
 import { FranchiseCredentialsModal } from '../components/admin/FranchiseCredentialsModal';
 
 export const TeamsDatabasePage: React.FC = () => {
   const { user } = useAuthStore();
+  const { deleteTeam, deleteAllTeams, showToast } = useAuctionStore();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,6 +21,11 @@ export const TeamsDatabasePage: React.FC = () => {
   const [isIconModalOpen, setIsIconModalOpen] = useState(false);
   const [selectedTeamIdForIcons, setSelectedTeamIdForIcons] = useState<string | undefined>(undefined);
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
+
+  // Delete State
+  const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN';
 
@@ -50,8 +57,35 @@ export const TeamsDatabasePage: React.FC = () => {
     setIsIconModalOpen(true);
   };
 
+  const handleConfirmDeleteSingle = async () => {
+    if (!teamToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteTeam(teamToDelete.id);
+      setTeamToDelete(null);
+      loadTeams();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete team.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteAllTeams();
+      setIsDeleteAllModalOpen(false);
+      loadTeams();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete all teams.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
-    return <div className="max-w-7xl mx-auto px-6 py-12 text-center text-slate-400">Loading franchises...</div>;
+    return <div className="max-w-7xl mx-auto px-6 py-12 text-center text-slate-400">Loading teams...</div>;
   }
 
   return (
@@ -59,21 +93,32 @@ export const TeamsDatabasePage: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-white font-display">
-            PARTICIPATING FRANCHISES ({teams.length})
+            PARTICIPATING TEAMS ({teams.length})
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Registered franchises competing with purse limit ₹15,000 and max 12 members squad.
+            Registered teams competing with purse limit ₹15,000 and max 12 members squad.
           </p>
         </div>
 
         {isAdmin && (
           <div className="flex items-center gap-2 flex-wrap">
+            {teams.length > 0 && (
+              <button
+                onClick={() => setIsDeleteAllModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 font-bold text-xs transition-colors shadow-sm"
+                title="Delete all participating teams"
+              >
+                <Trash2 className="w-4 h-4 text-rose-400" />
+                <span>Delete All Teams</span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsCredentialsModalOpen(true)}
               className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs transition-colors shadow-sm"
             >
               <Key className="w-4 h-4 text-amber-400" />
-              <span>Franchise Logins Table</span>
+              <span>Team Logins Table</span>
             </button>
 
             <button
@@ -81,7 +126,7 @@ export const TeamsDatabasePage: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-transform active:scale-95 shadow-md shadow-amber-500/20"
             >
               <Plus className="w-4 h-4" />
-              Add New Franchise
+              Add New Team
             </button>
           </div>
         )}
@@ -92,9 +137,9 @@ export const TeamsDatabasePage: React.FC = () => {
           <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 text-amber-400">
             <Shield className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-bold text-white mb-2">No Franchises Registered Yet</h3>
+          <h3 className="text-lg font-bold text-white mb-2">No Teams Registered Yet</h3>
           <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-            The tournament is starting fresh with a clean slate. As Commissioner, create your participating franchises and assign each owner their unique login username and password.
+            The tournament is starting fresh with a clean slate. As Commissioner, create your participating teams and assign each owner their unique login username and password.
           </p>
           {isAdmin && (
             <button
@@ -102,7 +147,7 @@ export const TeamsDatabasePage: React.FC = () => {
               className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition-all inline-flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Create First Franchise
+              Create First Team
             </button>
           )}
         </div>
@@ -149,13 +194,22 @@ export const TeamsDatabasePage: React.FC = () => {
                     </div>
 
                     {isAdmin && (
-                      <button
-                        onClick={() => handleEditTeam(t)}
-                        className="p-1.5 rounded-lg bg-slate-800/80 text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors"
-                        title="Edit team details"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleEditTeam(t)}
+                          className="p-1.5 rounded-lg bg-slate-800/80 text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+                          title="Edit team details"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setTeamToDelete(t)}
+                          className="p-1.5 rounded-lg bg-slate-800/80 text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 transition-colors"
+                          title={`Delete ${t.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -296,6 +350,14 @@ export const TeamsDatabasePage: React.FC = () => {
                       <Star className="w-3 h-3" />
                       <span>Assign Icon (₹2,500)</span>
                     </button>
+                    <button
+                      onClick={() => setTeamToDelete(t)}
+                      className="py-1.5 px-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                      title={`Delete ${t.name}`}
+                    >
+                      <Trash2 className="w-3 h-3 text-rose-400" />
+                      <span>Delete</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -336,6 +398,125 @@ export const TeamsDatabasePage: React.FC = () => {
           handleOpenAddTeam();
         }}
       />
+
+      {/* Delete Single Team Confirmation Modal */}
+      {teamToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Delete Team</h3>
+                <p className="text-xs text-slate-400">Confirm deletion of tournament team</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white shrink-0"
+                  style={{ backgroundColor: teamToDelete.primaryColor }}
+                >
+                  {teamToDelete.shortName}
+                </div>
+                <div>
+                  <div className="font-bold text-white">{teamToDelete.name}</div>
+                  {teamToDelete.ownerName && (
+                    <div className="text-[11px] text-slate-400">Owner: {teamToDelete.ownerName}</div>
+                  )}
+                </div>
+              </div>
+
+              {teamToDelete.squad && teamToDelete.squad.length > 0 ? (
+                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>
+                    <strong>{teamToDelete.squad.length} signed player(s)</strong> will be released back to the <strong>Upcoming</strong> auction pool.
+                  </span>
+                </div>
+              ) : (
+                <div className="text-[11px] text-slate-400">
+                  This team has no signed players. Franchise login and budget records will be removed.
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Are you sure you want to permanently delete <strong>{teamToDelete.name}</strong>? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setTeamToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteSingle}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition-all flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isDeleting ? 'Deleting...' : 'Confirm Delete Team'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Teams Confirmation Modal */}
+      {isDeleteAllModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-rose-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Delete All Teams</h3>
+                <p className="text-xs text-rose-400">Danger: Bulk tournament deletion</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-rose-950/30 border border-rose-500/30 space-y-2 text-xs text-rose-200">
+              <p>
+                You are about to delete <strong>ALL {teams.length} teams</strong> from the tournament.
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-300">
+                <li>All franchise login accounts will be removed</li>
+                <li>All team purse allocations will be cleared</li>
+                <li>All rostered players will return to the Upcoming pool</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsDeleteAllModalOpen(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteAll}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition-all flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isDeleting ? 'Deleting All...' : `Delete All ${teams.length} Teams`}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

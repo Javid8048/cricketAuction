@@ -85,7 +85,7 @@ export const SoldUnsoldBanner: React.FC = () => {
           </div>
 
           <p className="text-[11px] text-slate-400 font-mono">
-            Amount deducted from franchise purse • Player added to squad roster
+            Amount deducted from team purse • Player added to squad roster
           </p>
         </div>
       </div>
@@ -134,7 +134,7 @@ export const SoldUnsoldBanner: React.FC = () => {
               {formattedBasePrice || formatRupees(basePrice)}
             </span>
             <div className="text-[11px] text-slate-500 mt-1">
-              Eligible for re-auction round if requested by franchises
+              Eligible for re-auction round if requested by teams
             </div>
           </div>
         </div>

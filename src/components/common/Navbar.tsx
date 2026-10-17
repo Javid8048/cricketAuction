@@ -29,6 +29,7 @@ interface NavbarProps {
   layoutMode: 'topbar' | 'sidebar';
   onToggleLayoutMode: () => void;
   onOpenMobileNav: () => void;
+  isSpectatorMode?: boolean;
   onOpenAdminSettings?: () => void;
   onOpenIconModal?: () => void;
   onOpenTeamModal?: () => void;
@@ -42,6 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   layoutMode,
   onToggleLayoutMode,
   onOpenMobileNav,
+  isSpectatorMode,
   onOpenAdminSettings,
   onOpenIconModal,
   onOpenCredentialsModal,
@@ -54,6 +56,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const auctionStatus = state?.auction?.status || 'IDLE';
   const userTeam = state?.teams.find((t) => t.id === user?.teamId);
+
+  React.useEffect(() => {
+    if (!state?.players || state.players.length === 0) {
+      useAuctionStore.getState().refreshPlayers();
+    }
+  }, [state?.players]);
 
   return (
     <header className="sticky top-0 z-40 bg-[#0c101a]/95 backdrop-blur-md border-b border-slate-800/80">
@@ -111,8 +119,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Desktop Navigation Links (Visible only when Topbar mode is chosen & Authenticated) */}
-          {layoutMode === 'topbar' && isAuthenticated && (
+          {/* Desktop Navigation Links (Visible when Topbar mode is chosen & Authenticated or in Spectator Mode) */}
+          {layoutMode === 'topbar' && (isAuthenticated || isSpectatorMode) && (
             <nav className="hidden lg:flex items-center gap-1 ml-2 text-xs sm:text-sm font-medium">
               <button
                 onClick={() => onSelectTab('arena')}
@@ -145,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                 }`}
               >
-                Franchises ({state?.teams?.length || 0})
+                Teams ({state?.teams?.length || 0})
               </button>
 
               {user?.role === 'ADMIN' && (
@@ -173,6 +181,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <Trophy className="w-3.5 h-3.5 text-cyan-400" />
                   My Squad
+                </button>
+              )}
+
+              {user?.role === 'ADMIN' && (
+                <button
+                  onClick={() => onSelectTab('settings')}
+                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                    currentTab === 'settings'
+                      ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <Settings className="w-3.5 h-3.5 text-amber-400" />
+                  Settings
                 </button>
               )}
 
@@ -206,30 +228,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="sm:hidden">Register</span>
           </button>
 
-          {/* Admin Franchise Credentials Table Button */}
-          {user?.role === 'ADMIN' && onOpenCredentialsModal && (
-            <button
-              onClick={onOpenCredentialsModal}
-              title="View & Edit Franchise Passwords & Usernames"
-              className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 transition-colors flex items-center gap-1.5 text-xs font-bold shadow-sm"
-            >
-              <Key className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden md:inline">Franchise Logins</span>
-            </button>
-          )}
-
           {/* Admin Settings & Icon Modals */}
           {user?.role === 'ADMIN' && (
             <div className="hidden sm:flex items-center gap-1">
-              {onOpenAdminSettings && (
-                <button
-                  onClick={onOpenAdminSettings}
-                  title="Auction Settings (Timer, Auto-sell, Squad Limit)"
-                  className="p-2 rounded-xl bg-slate-800/80 text-slate-300 hover:text-amber-400 hover:bg-slate-700/80 transition-colors border border-slate-700/60"
-                >
-                  <Settings className="w-4 h-4 text-amber-400" />
-                </button>
-              )}
+              <button
+                onClick={() => onSelectTab('settings')}
+                title="Auction Settings (Timer, Auto-sell, Squad Limit)"
+                className={`p-2 rounded-xl transition-colors border ${
+                  currentTab === 'settings'
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                    : 'bg-slate-800/80 text-slate-300 hover:text-amber-400 hover:bg-slate-700/80 border-slate-700/60'
+                }`}
+              >
+                <Settings className="w-4 h-4 text-amber-400" />
+              </button>
               {onOpenIconModal && (
                 <button
                   onClick={onOpenIconModal}
@@ -315,13 +327,22 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => onSelectTab('login')}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95 flex items-center gap-1.5"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {isSpectatorMode && (
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-mono font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span>SPECTATOR</span>
+                </div>
+              )}
+              <button
+                onClick={() => onSelectTab('login')}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95 flex items-center gap-1.5"
+                title="Sign in as Team Owner or Commissioner"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>{isSpectatorMode ? 'Official Sign In' : 'Sign In'}</span>
+              </button>
+            </div>
           )}
         </div>
       </div>

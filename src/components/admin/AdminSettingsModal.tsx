@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
-import { Settings, Clock, Check, X, Shield, KeyRound, AlertCircle, Coins, Users, Star } from 'lucide-react';
+import {
+  Settings,
+  Clock,
+  Check,
+  X,
+  Shield,
+  KeyRound,
+  AlertCircle,
+  Coins,
+  Users,
+  Star,
+  LayoutTemplate,
+  Sun,
+  Moon,
+} from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuctionStore } from '../../store/auction.store';
 import { formatRupees } from '../../utils/currency';
@@ -7,11 +21,44 @@ import { formatRupees } from '../../utils/currency';
 interface AdminSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  layoutMode?: 'topbar' | 'sidebar';
+  onLayoutModeChange?: (mode: 'topbar' | 'sidebar') => void;
+  themeMode?: 'dark' | 'light';
+  onThemeModeChange?: (mode: 'dark' | 'light') => void;
 }
 
-export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, onClose }) => {
+export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({
+  isOpen,
+  onClose,
+  layoutMode = 'topbar',
+  onLayoutModeChange,
+  themeMode = 'dark',
+  onThemeModeChange,
+}) => {
   const { state, showToast, initState } = useAuctionStore();
   const auction = state?.auction;
+
+  const [currentLayoutMode, setCurrentLayoutMode] = useState<'topbar' | 'sidebar'>(layoutMode);
+  const [currentTheme, setCurrentTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('caa_theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+    }
+    return themeMode || 'dark';
+  });
+
+  const handleThemeChange = (newTheme: 'dark' | 'light') => {
+    setCurrentTheme(newTheme);
+    try {
+      localStorage.setItem('caa_theme', newTheme);
+      if (newTheme === 'light') {
+        document.documentElement.classList.add('light-theme');
+      } else {
+        document.documentElement.classList.remove('light-theme');
+      }
+    } catch (e) {}
+    if (onThemeModeChange) onThemeModeChange(newTheme);
+  };
 
   const [autoSell, setAutoSell] = useState<boolean>(auction?.autoSell !== undefined ? auction.autoSell : true);
   const [timerEnabled, setTimerEnabled] = useState<boolean>(auction?.timerEnabled !== undefined ? auction.timerEnabled : true);
@@ -235,7 +282,107 @@ export const AdminSettingsModal: React.FC<AdminSettingsModalProps> = ({ isOpen, 
             </div>
           </div>
 
-          {/* 4. Reset Admin Password */}
+          {/* 4. Navigation Menu Layout (Topbar vs Sidebar) */}
+          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between text-xs font-bold text-white">
+              <span className="flex items-center gap-1.5">
+                <LayoutTemplate className="w-3.5 h-3.5 text-amber-400" />
+                Navigation Layout Style
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono uppercase">
+                {currentLayoutMode === 'sidebar' ? 'Sidebar Active' : 'Topbar Active'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              When <strong>Side Navigation Bar</strong> is enabled, the Top Bar is removed for a distraction-free experience.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentLayoutMode('topbar');
+                  try {
+                    localStorage.setItem('caa_layout_mode', 'topbar');
+                  } catch (e) {}
+                  if (onLayoutModeChange) onLayoutModeChange('topbar');
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${
+                  currentLayoutMode === 'topbar'
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-600'
+                }`}
+              >
+                <span>Top Bar (Header)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentLayoutMode('sidebar');
+                  try {
+                    localStorage.setItem('caa_layout_mode', 'sidebar');
+                  } catch (e) {}
+                  if (onLayoutModeChange) onLayoutModeChange('sidebar');
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${
+                  currentLayoutMode === 'sidebar'
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-600'
+                }`}
+              >
+                <span>Side Bar (Left Nav)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 5. Theme Mode (Dark Mode vs Light Mode) */}
+          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between text-xs font-bold text-white">
+              <span className="flex items-center gap-1.5">
+                {currentTheme === 'dark' ? (
+                  <Moon className="w-3.5 h-3.5 text-amber-400" />
+                ) : (
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                )}
+                Display Theme Mode
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono uppercase">
+                {currentTheme === 'dark' ? 'Dark Arena Active' : 'Light Theme Active'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Switch between the dark night arena theme and crisp high-contrast light mode.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleThemeChange('dark')}
+                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
+                  currentTheme === 'dark'
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-600'
+                }`}
+              >
+                <Moon className="w-4 h-4" />
+                <span>Dark Arena Mode</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleThemeChange('light')}
+                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
+                  currentTheme === 'light'
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-600'
+                }`}
+              >
+                <Sun className="w-4 h-4" />
+                <span>Light Mode</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 5. Reset Admin Password */}
           <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
             <div className="flex items-center justify-between">
               <div>

@@ -112,7 +112,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({ playerId
             </div>
           </div>
 
-          {/* Acquired Franchise if Sold */}
+          {/* Acquired Team if Sold */}
           {player.teamPlayer?.team && (
             <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
               <div className="flex items-center gap-3">
