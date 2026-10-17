@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
-import { Play, Pause, FastForward, CheckCircle, XCircle, RotateCcw, ShieldAlert, Wifi, Gavel, Clock, Eye } from 'lucide-react';
+import React from 'react';
+import { Play, Pause, FastForward, CheckCircle, XCircle, RotateCcw, ShieldAlert, Wifi, Clock, Eye } from 'lucide-react';
 import { useAuctionStore } from '../../store/auction.store';
 import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../services/api';
-import { ManualSellModal } from '../admin/ManualSellModal';
 
 export const LiveBroadcastHeader: React.FC = () => {
   const { state, isStandaloneMode, adminActionStandalone } = useAuctionStore();
   const { user } = useAuthStore();
-  const [isManualSellOpen, setIsManualSellOpen] = useState(false);
 
   const auction = state?.auction;
   const isAdmin = user?.role === 'ADMIN';
@@ -142,17 +140,6 @@ export const LiveBroadcastHeader: React.FC = () => {
               </button>
             )}
 
-            {/* Manual Sell to Team Modal Trigger */}
-            <button
-              onClick={() => setIsManualSellOpen(true)}
-              disabled={auction?.status !== 'ACTIVE' || !auction?.activePlayerId}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-gradient-to-r from-amber-500/25 to-emerald-600/30 text-emerald-200 hover:bg-emerald-600/50 text-xs font-bold border border-emerald-500/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Directly sell player to any selected team"
-            >
-              <Gavel className="w-3 h-3 text-emerald-300" />
-              Manual Sell
-            </button>
-
             {/* Sold to highest bidder */}
             <button
               onClick={() => handleAction('sell', 'Sell current player to highest bidder?')}
@@ -211,12 +198,6 @@ export const LiveBroadcastHeader: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Manual Sell to Team Modal */}
-      <ManualSellModal
-        isOpen={isManualSellOpen}
-        onClose={() => setIsManualSellOpen(false)}
-      />
     </div>
   );
 };
