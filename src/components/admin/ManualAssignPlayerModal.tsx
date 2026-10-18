@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, CheckCircle2, AlertTriangle, IndianRupee, Users, ArrowRight, X } from 'lucide-react';
+import { Shield, CheckCircle2, AlertTriangle, IndianRupee, Users, ArrowRight, X, Search, Zap } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { api } from '../../services/api';
 import { useAuctionStore } from '../../store/auction.store';
@@ -21,6 +21,7 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
 }) => {
   const { state, manuallyAssignPlayer } = useAuctionStore();
   const [players, setPlayers] = useState<Player[]>([]);
+  const [playerSearch, setPlayerSearch] = useState('');
   const [teams, setTeams] = useState<Team[]>([]);
   const getDefaultPrice = (p?: Player | null) => {
     if (p?.basePrice && p.basePrice >= 100 && p.basePrice <= 2500) {
@@ -69,6 +70,23 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
 
   const selectedPlayer = players.find((p) => p.id === selectedPlayerId) || state?.activePlayer;
   const selectedTeam = (teams.length > 0 ? teams : (state?.teams || [])).find((t) => t.id === selectedTeamId);
+
+  const filteredPlayers = players.filter((p) => {
+    if (!playerSearch.trim()) return true;
+    const term = playerSearch.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(term) ||
+      p.role.toLowerCase().includes(term) ||
+      (p.country && p.country.toLowerCase().includes(term)) ||
+      (p.sNo && String(p.sNo).includes(term))
+    );
+  });
+
+  const displayedPlayers = (
+    selectedPlayer && !filteredPlayers.some((p) => p.id === selectedPlayer.id)
+      ? [selectedPlayer, ...filteredPlayers]
+      : filteredPlayers
+  );
 
   const handlePlayerChange = (playerId: string) => {
     setSelectedPlayerId(playerId);
@@ -164,19 +182,56 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
 
         {/* 1. Choose Player */}
         <div>
-          <label className="block text-[11px] sm:text-xs font-bold text-slate-300 uppercase tracking-wider mb-1 sm:mb-1.5">
-            1. Select Player to Assign
-          </label>
+          <div className="flex flex-col xs:flex-row sm:items-center justify-between gap-1 mb-1.5">
+            <label className="block text-[11px] sm:text-xs font-bold text-slate-300 uppercase tracking-wider">
+              1. Select Player to Assign
+            </label>
+            {state?.activePlayer && selectedPlayerId !== state.activePlayer.id && (
+              <button
+                type="button"
+                onClick={() => handlePlayerChange(state.activePlayer!.id)}
+                className="text-[10px] text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1 self-start xs:self-auto active:scale-95 transition-all"
+              >
+                <span>⚡ Use Active Player ({state.activePlayer.name})</span>
+              </button>
+            )}
+          </div>
+
+          {/* Quick Search */}
+          <div className="relative mb-2">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by player name, role, or jersey #..."
+              value={playerSearch}
+              onChange={(e) => setPlayerSearch(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-8 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            />
+            {playerSearch && (
+              <button
+                type="button"
+                onClick={() => setPlayerSearch('')}
+                className="absolute right-2.5 top-2 text-slate-400 hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
           <select
             value={selectedPlayerId}
             onChange={(e) => handlePlayerChange(e.target.value)}
             className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
           >
-            {players.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.sNo ? `[#${p.sNo}] ` : ''}{p.name} ({p.country} • {p.role} • Base {formatRupees(p.basePrice)}) [{p.status}]
-              </option>
-            ))}
+            {displayedPlayers.length === 0 ? (
+              <option value="" disabled>No players match search</option>
+            ) : (
+              displayedPlayers.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.sNo ? `[#${p.sNo}] ` : ''}{p.name} ({p.country} • {p.role} • Base {formatRupees(p.basePrice)}) [{p.status}]
+                </option>
+              ))
+            )}
           </select>
           {selectedPlayer && (
             <div className="mt-2 p-2 sm:p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2.5 sm:gap-3 min-w-0">

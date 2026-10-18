@@ -28,13 +28,7 @@ export const AdminControlPanel: React.FC = () => {
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [loadingAction, setLoadingAction] = useState(false);
-
-  // Manual Assignment State
-  const [activeTab, setActiveTab] = useState<'bidding' | 'manual'>('bidding');
-  const [assignTeamId, setAssignTeamId] = useState('');
-  const [assignAmount, setAssignAmount] = useState<number | string>(100);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [assignError, setAssignError] = useState<string | null>(null);
 
   const auction = state?.auction;
   const activePlayer = state?.activePlayer;
@@ -85,44 +79,7 @@ export const AdminControlPanel: React.FC = () => {
     handleAction('select_player', () => api.selectPlayer(selectedPlayerId), undefined, selectedPlayerId);
   };
 
-  const handleDirectManualAssign = async () => {
-    if (!activePlayer) {
-      alert('No active player on the block. Please put a player on the block first.');
-      return;
-    }
-    if (!assignTeamId) {
-      alert('Please select a team.');
-      return;
-    }
-    const finalPrice = assignAmount === '' ? 0 : Number(assignAmount);
-    if (isNaN(finalPrice) || finalPrice < 100 || finalPrice > 2500) {
-      alert('Price must be between ₹100 and ₹2,500.');
-      return;
-    }
 
-    const targetTeam = teams.find((t) => t.id === assignTeamId);
-    if (targetTeam && targetTeam.remainingPurse < finalPrice) {
-      setAssignError(
-        `Insufficient purse! ${targetTeam.name} has only ${formatRupees(targetTeam.remainingPurse)}.`
-      );
-      return;
-    }
-
-    setLoadingAction(true);
-    setAssignError(null);
-    try {
-      await manuallyAssignPlayer(activePlayer.id, assignTeamId, finalPrice);
-    } catch (err: any) {
-      setAssignError(err.message || 'Failed to assign player.');
-    } finally {
-      setLoadingAction(false);
-    }
-  };
-
-  const selectedTargetTeam = teams.find((t) => t.id === assignTeamId);
-  const remainingAfter = selectedTargetTeam
-    ? selectedTargetTeam.remainingPurse - (Number(assignAmount) || 0)
-    : 0;
 
   const isTimerEnabled = auction?.timerEnabled !== false;
   const timerSec = auction?.defaultTimerSec || 10;
@@ -172,34 +129,16 @@ export const AdminControlPanel: React.FC = () => {
           </button>
         </div>
 
-        {/* Two Options Mode Toggle */}
-        <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 self-start lg:self-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab('bidding')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'bidding'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Radio className="w-3.5 h-3.5" />
-            <span>Option 1: Team BID Mode</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('manual')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'manual'
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Option 2: Sold To Team (Manual Assign)</span>
-          </button>
-        </div>
+        {/* Manual Assign Pop-up Modal Button */}
+        <button
+          type="button"
+          onClick={() => setIsAssignModalOpen(true)}
+          className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 hover:from-emerald-500/30 hover:to-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95 self-start lg:self-auto"
+          title="Open Manual Assign Pop-up Modal"
+        >
+          <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Manual Assign (Pop-up)</span>
+        </button>
       </div>
 
       {/* Introduce Player to Auction Block */}
@@ -240,138 +179,10 @@ export const AdminControlPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* OPTION 2: ADMIN ASSIGN PLAYER MANUALLY PANEL */}
-      {activeTab === 'manual' && (
-        <div className="mb-5 p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 to-slate-900 border-2 border-emerald-500/40 shadow-xl space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center text-slate-950 font-black">
-                <Zap className="w-4 h-4 fill-slate-950" />
-              </div>
-              <div>
-                <h4 className="text-sm font-extrabold text-white uppercase tracking-wider">
-                  Option 2: Direct Admin Team Allocation (Sold To Team)
-                </h4>
-                <p className="text-[11px] text-emerald-300">
-                  Assign active player directly to a team. Amount will be deducted from their purse.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsAssignModalOpen(true)}
-              className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700"
-            >
-              Browse Catalog
-            </button>
-          </div>
-
-          {assignError && (
-            <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-              <span>{assignError}</span>
-            </div>
-          )}
-
-          {activePlayer ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-              {/* Team Select */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                  Target Team (Sold To)
-                </label>
-                <select
-                  value={assignTeamId}
-                  onChange={(e) => setAssignTeamId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                >
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({formatRupees(t.remainingPurse)} Purse)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Amount input */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                  Assignment Price (₹)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2 text-xs font-mono font-bold text-slate-400">₹</span>
-                  <input
-                    type="number"
-                    min="100"
-                    max="2500"
-                    step="any"
-                    value={assignAmount}
-                    onChange={(e) => setAssignAmount(e.target.value)}
-                    placeholder="Enter price (₹100 - ₹2,500)"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                {/* Quick chip presets */}
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {[100, 200, 500, 1000, 2000, 2500].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setAssignAmount(preset)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all ${
-                        Number(assignAmount) === preset
-                          ? 'bg-emerald-500 text-slate-950'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
-                      }`}
-                    >
-                      {formatRupees(preset)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <div>
-                <button
-                  type="button"
-                  onClick={handleDirectManualAssign}
-                  disabled={loadingAction || assignAmount === '' || Number(assignAmount) < 100 || Number(assignAmount) > 2500}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all transform active:scale-95 disabled:opacity-50 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5"
-                >
-                  <Zap className="w-4 h-4 fill-slate-950" />
-                  <span>Sold To Team (Confirm)</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">
-              No player currently active on the auction block. Please put a player on the block above or use the catalog selector.
-            </div>
-          )}
-
-          {/* Real-time purse math preview */}
-          {selectedTargetTeam && activePlayer && (
-            <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-wrap items-center justify-between text-xs gap-2">
-              <span className="text-slate-400">
-                Purse impact on <strong className="text-white">{selectedTargetTeam.name}</strong>:
-              </span>
-              <span className="font-mono">
-                <span className="text-slate-300">{formatRupees(selectedTargetTeam.remainingPurse)}</span>
-                <span className="text-rose-400 font-bold"> - {formatRupees(Number(assignAmount) || 0)}</span>
-                <span className="text-slate-400"> = </span>
-                <strong className={remainingAfter < 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>
-                  {formatRupees(remainingAfter)} Left
-                </strong>
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* OPTION 1: TEAM BIDDING CONTROLS & AUCTION FLOW */}
+      {/* AUCTIONEER COMMAND ACTIONS & BID FLOW */}
       <div>
         <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center justify-between">
-          <span>Auctioneer Control Actions (Option 1: Live Team BID Flow)</span>
+          <span>Auctioneer Control Actions (Live BID & Gavel Flow)</span>
           {auction?.status === 'ACTIVE' && (
             <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
@@ -429,15 +240,12 @@ export const AdminControlPanel: React.FC = () => {
             <span>SELL TO BIDDER</span>
           </button>
 
-          {/* SOLD TO TEAM (MANUAL ASSIGN) */}
+          {/* SOLD TO TEAM (MANUAL ASSIGN POP-UP) */}
           <button
-            onClick={() => {
-              setActiveTab('manual');
-              setIsAssignModalOpen(true);
-            }}
-            disabled={loadingAction || !auction?.activePlayerId}
-            className="p-3 rounded-xl bg-gradient-to-b from-amber-500/25 to-amber-600/15 hover:from-amber-500/35 hover:to-amber-600/25 border-2 border-amber-500/60 text-amber-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40 shadow-lg shadow-amber-500/10"
-            title="Assign and sell player manually to chosen team with purse deduction"
+            onClick={() => setIsAssignModalOpen(true)}
+            disabled={loadingAction}
+            className="p-3 rounded-xl bg-gradient-to-b from-amber-500/25 to-amber-600/15 hover:from-amber-500/35 hover:to-amber-600/25 border-2 border-amber-500/60 text-amber-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all active:scale-95 disabled:opacity-40 shadow-lg shadow-amber-500/10"
+            title="Open separate Manual Assign Pop-up to assign player to team"
           >
             <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
             <span>SOLD TO TEAM</span>
