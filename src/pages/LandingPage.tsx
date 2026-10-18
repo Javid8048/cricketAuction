@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import {
   Flame,
-  Shield,
-  Users,
   Lock,
   User,
   ArrowRight,
@@ -83,33 +81,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Glow Accent */}
         <div className="absolute -top-16 -right-16 w-36 h-36 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Unified Portal Header */}
-        <div className="p-4 mb-6 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-extrabold text-white uppercase tracking-wider font-display">
-                Portal Sign In
-              </h2>
-              <p className="text-[11px] text-slate-400">
-                Single sign-in for Team Owners & Tournament Commissioners
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 pt-1 border-t border-slate-800/80 text-[11px] text-slate-400 font-mono">
-            <span className="flex items-center gap-1 text-amber-300">
-              <Users className="w-3.5 h-3.5" />
-              <span>Team Desk</span>
-            </span>
-            <span className="text-slate-600">•</span>
-            <span className="flex items-center gap-1 text-emerald-300">
-              <Shield className="w-3.5 h-3.5" />
-              <span>Commissioner Desk</span>
-            </span>
-          </div>
-        </div>
 
         {error && (
           <div className="mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
