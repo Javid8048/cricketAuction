@@ -38,11 +38,11 @@ export const Modal: React.FC<ModalProps> = ({
         className={`w-full ${maxWidth} bg-[#101522] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-800 bg-[#141a2a]">
-          {title && <h3 className="text-base sm:text-lg font-bold text-white font-display">{title}</h3>}
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-slate-800 bg-[#141a2a]">
+          {title && <h3 className="text-sm sm:text-base md:text-lg font-bold text-white font-display truncate mr-2">{title}</h3>}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-auto"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-auto shrink-0"
           >
             <X className="w-5 h-5" />
           </button>

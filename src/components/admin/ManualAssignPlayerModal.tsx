@@ -144,33 +144,33 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Admin: Sold To Team (Manual Assignment)"
+      title="Admin: Sold To Team (Manual Assign)"
       maxWidth="max-w-xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-5 text-slate-200">
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-2.5 text-xs text-amber-300">
-          <Shield className="w-5 h-5 text-amber-400 shrink-0" />
-          <span>
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 text-slate-200">
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 sm:p-3 flex items-start sm:items-center gap-2.5 text-[11px] sm:text-xs text-amber-300">
+          <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
+          <span className="leading-relaxed">
             <strong>Commissioner Override:</strong> Directly assign player to team. The specified amount will be immediately deducted from their purse.
           </span>
         </div>
 
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+          <div className="p-2.5 sm:p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-[11px] sm:text-xs flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{errorMsg}</span>
+            <span className="break-words">{errorMsg}</span>
           </div>
         )}
 
         {/* 1. Choose Player */}
         <div>
-          <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+          <label className="block text-[11px] sm:text-xs font-bold text-slate-300 uppercase tracking-wider mb-1 sm:mb-1.5">
             1. Select Player to Assign
           </label>
           <select
             value={selectedPlayerId}
             onChange={(e) => handlePlayerChange(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
           >
             {players.map((p) => (
               <option key={p.id} value={p.id}>
@@ -179,19 +179,27 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
             ))}
           </select>
           {selectedPlayer && (
-            <div className="mt-2 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center gap-3">
+            <div className="mt-2 p-2 sm:p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2.5 sm:gap-3 min-w-0">
               <img
                 src={selectedPlayer.profileImage}
                 alt={selectedPlayer.name}
-                className="w-10 h-10 rounded-lg object-cover border border-slate-700"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg object-cover border border-slate-700 shrink-0"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${selectedPlayer.name}`;
                 }}
               />
-              <div className="text-xs">
-                <div className="font-bold text-white">{selectedPlayer.name}</div>
-                <div className="text-slate-400 text-[11px]">
-                  {selectedPlayer.role} • Base Price: <span className="font-mono text-amber-400 font-bold">{formatRupees(selectedPlayer.basePrice)}</span>
+              <div className="text-xs min-w-0 flex-1">
+                <div className="font-bold text-white truncate">{selectedPlayer.name}</div>
+                <div className="text-slate-400 text-[10px] sm:text-[11px] truncate flex flex-wrap items-center gap-x-1.5">
+                  <span>{selectedPlayer.role}</span>
+                  <span>•</span>
+                  <span>Base: <strong className="font-mono text-amber-400 font-bold">{formatRupees(selectedPlayer.basePrice)}</strong></span>
+                  {selectedPlayer.belongingTeam && (
+                    <>
+                      <span>•</span>
+                      <span className="text-slate-400">Team: {selectedPlayer.belongingTeam.shortName || selectedPlayer.belongingTeam.name}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -200,7 +208,7 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
 
         {/* 2. Choose Team */}
         <div>
-          <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+          <label className="block text-[11px] sm:text-xs font-bold text-slate-300 uppercase tracking-wider mb-1 sm:mb-1.5">
             2. Select Target Team
           </label>
           <select
@@ -209,7 +217,7 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
               setSelectedTeamId(e.target.value);
               setErrorMsg(null);
             }}
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
           >
             {(teams.length > 0 ? teams : (state?.teams || [])).map((t) => {
               const sq = t.squad?.length ?? t.squadSize ?? 0;
@@ -224,16 +232,16 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
 
         {/* 3. Transfer Amount */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-0.5 sm:gap-2 mb-1.5">
+            <label className="text-[11px] sm:text-xs font-bold text-slate-300 uppercase tracking-wider">
               3. Final Transfer Price (₹)
             </label>
-            <span className="text-[11px] font-mono text-amber-400 font-bold">
+            <span className="text-[10px] sm:text-[11px] font-mono text-amber-400 font-bold">
               Must be ₹100 – ₹2,500
             </span>
           </div>
           <div className="relative mb-2">
-            <span className="absolute left-3 top-2.5 text-xs font-mono font-bold text-slate-400">₹</span>
+            <span className="absolute left-3 top-2 sm:top-2.5 text-xs font-mono font-bold text-slate-400">₹</span>
             <input
               type="number"
               min="100"
@@ -246,20 +254,20 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
               }}
               required
               placeholder="Enter transfer price (₹100 - ₹2,500)"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2.5 text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-7 sm:pl-8 pr-3 py-2 sm:py-2.5 text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-500"
             />
           </div>
 
           {/* Quick presets */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1 sm:gap-1.5">
             {quickAmounts.map((q) => (
               <button
                 key={q.label}
                 type="button"
                 onClick={() => setAmount(q.value)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold transition-all ${
+                className={`px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] font-mono font-semibold transition-all active:scale-95 ${
                   Number(amount) === q.value
-                    ? 'bg-amber-500 text-slate-950 font-bold'
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
                     : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
                 }`}
               >
@@ -267,7 +275,7 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-slate-400 mt-1.5">
+          <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
             💡 Commissioner override: Price must be between ₹100 and ₹2,500. Amount will be deducted from team's purse.
           </p>
           {amount !== '' && (numericAmount < 100 || numericAmount > 2500) && (
@@ -280,36 +288,36 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
 
         {/* 4. Live Purse Deduction Preview Card */}
         {selectedTeam && (
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          <div className="p-3 sm:p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+            <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               Team Purse & Squad Impact Preview
             </div>
-            <div className="grid grid-cols-3 gap-2 text-center pt-1">
-              <div className="p-2 rounded-lg bg-slate-800/80">
-                <span className="text-[10px] text-slate-400 block">CURRENT PURSE</span>
-                <span className="font-mono text-xs font-bold text-white">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center pt-1">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800/80 min-w-0">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 block truncate">CURRENT</span>
+                <span className="font-mono text-[11px] sm:text-xs font-bold text-white block truncate">
                   {formatRupees(selectedTeam.remainingPurse)}
                 </span>
               </div>
-              <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
-                <span className="text-[10px] text-rose-300 block">DEDUCTION</span>
-                <span className="font-mono text-xs font-bold text-rose-400">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 min-w-0">
+                <span className="text-[9px] sm:text-[10px] text-rose-300 block truncate">DEDUCTION</span>
+                <span className="font-mono text-[11px] sm:text-xs font-bold text-rose-400 block truncate">
                   -{formatRupees(numericAmount)}
                 </span>
               </div>
-              <div className={`p-2 rounded-lg border ${
+              <div className={`p-1.5 sm:p-2 rounded-lg border min-w-0 ${
                 isPurseInsufficient
                   ? 'bg-rose-950/40 border-rose-500 text-rose-400'
                   : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
               }`}>
-                <span className="text-[10px] block opacity-80">NEW PURSE</span>
-                <span className="font-mono text-xs font-bold">
+                <span className="text-[9px] sm:text-[10px] block opacity-80 truncate">NEW PURSE</span>
+                <span className="font-mono text-[11px] sm:text-xs font-bold block truncate">
                   {formatRupees(remainingPurseAfter)}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] sm:text-xs pt-2 border-t border-slate-800 gap-1">
               <span className="text-slate-400">Squad Size Impact:</span>
               <span className={`font-mono font-bold ${isSquadFull ? 'text-rose-400' : 'text-slate-200'}`}>
                 {currentSquadCount} / {maxSquad} players → <span className="text-amber-400">{currentSquadCount + 1} / {maxSquad}</span>
@@ -319,21 +327,21 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
         )}
 
         {/* Action Buttons */}
-        <div className="pt-2 flex items-center justify-end gap-2">
+        <div className="pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors text-center"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading || isPurseInsufficient || isSquadFull || amount === '' || numericAmount < 100 || numericAmount > 2500}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all transform active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-amber-500/20 flex items-center gap-2"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all transform active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
           >
             {loading ? 'Processing...' : `Confirm & Assign for ${formatRupees(numericAmount)}`}
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
         </div>
       </form>
