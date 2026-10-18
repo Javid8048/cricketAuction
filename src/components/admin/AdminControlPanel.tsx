@@ -38,15 +38,7 @@ export const AdminControlPanel: React.FC = () => {
     api.getPlayers().then(setAllPlayers).catch(console.error);
   }, [state?.auction?.activePlayerId]);
 
-  useEffect(() => {
-    if (activePlayer) {
-      const pPrice = activePlayer.basePrice;
-      setAssignAmount(pPrice && pPrice >= 100 && pPrice <= 2500 ? pPrice : 100);
-    }
-    if (teams.length > 0 && !assignTeamId) {
-      setAssignTeamId(teams[0].id);
-    }
-  }, [activePlayer?.id, teams]);
+
 
   const handleAction = async (
     actionKey: string,
