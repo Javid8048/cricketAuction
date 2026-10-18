@@ -190,6 +190,7 @@ export function App() {
         <LandingPage
           onSuccess={() => {
             setIsSpectatorMode(false);
+            initState();
             handleTabChange('arena');
           }}
           onOpenRegister={() => handleTabChange('register')}

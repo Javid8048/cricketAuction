@@ -206,7 +206,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         auction: {
           id: 'auction-mega-2026',
           name: 'Premier Cricket Mega Auction 2026',
-          status: 'PAUSED',
+          status: 'IDLE',
           currentRound: 1,
           defaultTimerSec: 10,
           activePlayerId: activeP?.id || null,
@@ -666,9 +666,22 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       set({ state: { ...state, auction: { ...state.auction, status: 'PAUSED' } } });
       get().showToast('Auction paused', 'info');
     } else if (action === 'resume' || action === 'start') {
-      set({ state: { ...state, auction: { ...state.auction, status: 'ACTIVE' } } });
+      const activeP = state.activePlayer || (INITIAL_PLAYERS && INITIAL_PLAYERS.length > 0 ? INITIAL_PLAYERS[0] : null);
+      set({
+        state: {
+          ...state,
+          activePlayer: activeP,
+          currentBid: state.currentBid || activeP?.basePrice || 100,
+          auction: {
+            ...state.auction,
+            activePlayerId: activeP?.id || state.auction.activePlayerId,
+            activePlayerPrice: state.currentBid || activeP?.basePrice || 100,
+            status: 'ACTIVE',
+          },
+        },
+      });
       get().startStandaloneTimer();
-      get().showToast('Auction started/resumed', 'success');
+      get().showToast('Auction started', 'success');
     } else if (action === 'sell') {
       get().stopStandaloneTimer();
       if (!state.activePlayer) return;
@@ -782,7 +795,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
             activePlayerId: nextP.id,
             activePlayerPrice: nextP.basePrice,
             highestBidTeamId: null,
-            status: 'PAUSED',
+            status: 'IDLE',
           },
         },
         secondsLeft: 10,
@@ -807,7 +820,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
             activePlayerId: null,
             activePlayerPrice: null,
             highestBidTeamId: null,
-            status: 'PAUSED',
+            status: 'IDLE',
           },
         },
         secondsLeft: 10,
@@ -833,7 +846,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
               activePlayerId: targetP.id,
               activePlayerPrice: targetP.basePrice,
               highestBidTeamId: null,
-              status: 'PAUSED',
+              status: 'IDLE',
             },
           },
           secondsLeft: 10,

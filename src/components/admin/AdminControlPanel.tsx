@@ -394,19 +394,19 @@ export const AdminControlPanel: React.FC = () => {
           ) : (
             <button
               onClick={() => handleAction('start', () => api.startAuction())}
-              disabled={loadingAction || !auction?.activePlayerId}
-              className="p-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={loadingAction}
+              className="p-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-emerald-500/10"
             >
               <Play className="w-5 h-5 text-emerald-400" />
-              <span>{auction?.status === 'PAUSED' ? 'RESUME' : 'START AUCTION'}</span>
+              <span>START AUCTION</span>
             </button>
           )}
 
           {/* START BIDDING TIMER */}
           <button
             onClick={() => handleAction('start', () => api.startBidding())}
-            disabled={loadingAction || !auction?.activePlayerId}
-            className="p-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all disabled:opacity-40"
+            disabled={loadingAction}
+            className="p-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all active:scale-95 disabled:opacity-40 shadow-md shadow-sky-500/10"
           >
             <Play className="w-5 h-5 text-sky-400" />
             <span>START BID TIMER</span>
