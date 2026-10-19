@@ -52,6 +52,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
     basePrice: 100,
     category: 'Local Talent',
     profileImage: '',
+    belongingTeamName: '',
     belongingTeamId: '',
     soldToTeamId: '',
     soldPrice: 100,
@@ -90,6 +91,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         basePrice: player.basePrice || 100,
         category: player.category || 'Local Talent',
         profileImage: player.profileImage || '',
+        belongingTeamName: player.belongingTeamName || player.belongingTeam?.name || '',
         belongingTeamId: player.belongingTeamId || player.belongingTeam?.id || '',
         soldToTeamId: (player.status === 'SOLD' && (player.teamPlayer?.teamId || player.teamPlayer?.team?.id)) ? (player.teamPlayer?.teamId || player.teamPlayer?.team?.id || '') : '',
         soldPrice: existingSoldPrice >= 100 && existingSoldPrice <= 2500 ? existingSoldPrice : 100,
@@ -198,6 +200,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         basePrice: Number(formData.basePrice) || 100,
         place: formData.place.trim(),
         phone: formData.phone.trim(),
+        belongingTeamName: formData.belongingTeamName ? formData.belongingTeamName.trim() : null,
         belongingTeamId: formData.belongingTeamId ? formData.belongingTeamId : 'NONE',
         soldToTeamId: formData.soldToTeamId ? formData.soldToTeamId : 'NONE',
         soldPrice: formData.soldToTeamId ? Number(formData.soldPrice) : null,
@@ -539,35 +542,30 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
           </div>
         </div>
 
-        {/* OPTION 1: PLAYER BELONGS TO (HOME TEAM AFFILIATION) */}
+        {/* OPTION 1: PLAYER BELONGS TO (HOME TEAM / CLUB AFFILIATION) */}
         <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
           <label className="block text-xs font-bold text-white flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Shield className="w-4 h-4 text-amber-400" />
-              <span>Option 1: Player Belongs To (Home Team Affiliation)</span>
+              <span>Option 1: Player Belongs To (Home Team / Club Name)</span>
             </span>
             <span className="text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
               Open to Any Team
             </span>
           </label>
           <div className="relative">
-            <select
-              value={formData.belongingTeamId}
-              onChange={(e) => setFormData({ ...formData, belongingTeamId: e.target.value })}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-            >
-              <option value="">-- Independent (Free Agent / Open Pool) --</option>
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.shortName})
-                </option>
-              ))}
-            </select>
+            <input
+              type="text"
+              value={formData.belongingTeamName}
+              onChange={(e) => setFormData({ ...formData, belongingTeamName: e.target.value })}
+              placeholder="e.g. Chennai Super Kings, Local Club XI, Independent, etc."
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            />
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            {formData.belongingTeamId ? (
+            {formData.belongingTeamName ? (
               <span className="text-amber-300 font-medium">
-                🏠 Player belongs to <strong>{teams.find((t) => t.id === formData.belongingTeamId)?.name}</strong>.
+                🏠 Player belongs to <strong>{formData.belongingTeamName}</strong>.
                 <span className="text-slate-400 block mt-0.5">
                   <em>Note: This is an auction tournament, hence this player is in the open draft pool and can be bid on and played by ANY team!</em>
                 </span>

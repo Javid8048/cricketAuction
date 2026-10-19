@@ -86,6 +86,7 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
     basePrice: 100,
     category: 'Local Talent',
     profileImage: '',
+    belongingTeamName: '',
     teamId: '',
     matches: 0,
     runs: 0,
@@ -234,6 +235,7 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
         basePrice: Number(newPlayer.basePrice) || 100,
         place: newPlayer.place.trim(),
         phone: newPlayer.phone.trim(),
+        belongingTeamName: newPlayer.belongingTeamName ? newPlayer.belongingTeamName.trim() : undefined,
         teamId: newPlayer.teamId || undefined,
         isOverseas: newPlayer.country ? newPlayer.country.toLowerCase() !== 'india' : false,
         profileImage:
@@ -307,7 +309,7 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
       p.phone || '',
       p.basePrice,
       p.status,
-      p.belongingTeam?.name || '',
+      p.belongingTeamName || p.belongingTeam?.name || '',
       p.teamPlayer?.team?.name || '',
       p.currentPrice || '',
     ]);
@@ -545,18 +547,18 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
                     </div>
                     {/* Team Affiliation and Squad Status Badges */}
                     <div className="mt-1.5 flex flex-wrap gap-1">
-                      {p.belongingTeam ? (
+                      {p.belongingTeamName || p.belongingTeam ? (
                         <span
                           className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"
                           style={{
-                            borderColor: `${p.belongingTeam.primaryColor}55`,
-                            backgroundColor: `${p.belongingTeam.primaryColor}20`,
-                            color: p.belongingTeam.primaryColor,
+                            borderColor: p.belongingTeam?.primaryColor ? `${p.belongingTeam.primaryColor}55` : 'rgba(245, 158, 11, 0.4)',
+                            backgroundColor: p.belongingTeam?.primaryColor ? `${p.belongingTeam.primaryColor}20` : 'rgba(245, 158, 11, 0.1)',
+                            color: p.belongingTeam?.primaryColor || '#fbbf24',
                           }}
-                          title={`Belongs to ${p.belongingTeam.name} (Can be bid on and played by any team in auction)`}
+                          title={`Belongs to ${p.belongingTeamName || p.belongingTeam?.name} (Can be bid on and played by any team in auction)`}
                         >
                           <Shield className="w-2.5 h-2.5 shrink-0" />
-                          <span className="truncate">Belongs to: {p.belongingTeam.name}</span>
+                          <span className="truncate">Belongs to: {p.belongingTeamName || p.belongingTeam?.name}</span>
                         </span>
                       ) : (
                         <span
@@ -1029,39 +1031,33 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
             </div>
           </div>
 
-          {/* ASSIGNED TEAM LOV (Optional) */}
+          {/* ASSIGNED TEAM (MANUAL INPUT) */}
           <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-1.5">
             <label className="block text-xs font-bold text-white flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Shield className="w-4 h-4 text-amber-400" />
-                <span>Belongs to Team (Optional LOV)</span>
+                <span>Belongs to Team / Club Name (Manual)</span>
               </span>
               <span className="text-[10px] text-slate-500 font-normal">
-                Editable by Admin anytime
+                Enter manually
               </span>
             </label>
             <div className="relative">
-              <select
-                value={newPlayer.teamId}
-                onChange={(e) => setNewPlayer({ ...newPlayer, teamId: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-              >
-                <option value="">Not Selected (New Player / Yet to decide - Open Pool)</option>
-                {teams.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({t.shortName})
-                  </option>
-                ))}
-              </select>
+              <input
+                type="text"
+                value={newPlayer.belongingTeamName}
+                onChange={(e) => setNewPlayer({ ...newPlayer, belongingTeamName: e.target.value })}
+                placeholder="Type team or club name (e.g. Chennai Super Kings, Local Club XI, etc.)"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              />
             </div>
             <p className="text-[11px] text-slate-500">
-              {newPlayer.teamId ? (
+              {newPlayer.belongingTeamName ? (
                 <span className="text-amber-300 font-medium">
-                  Player belongs to{' '}
-                  <strong>{teams.find((t) => t.id === newPlayer.teamId)?.name}</strong>. All players are shuffled into the pool so that even though they belong to this team, they can be bid on and played by any other team!
+                  Player belongs to <strong>{newPlayer.belongingTeamName}</strong>. All players are shuffled into the pool so that even though they belong to this club, they can be bid on and played by any other team!
                 </span>
               ) : (
-                <span>New player (not yet decided to add in a team). Shuffled into the pool and can be bid on and played by any team.</span>
+                <span>Independent / New player (leave empty if free agent). Shuffled into the pool and can be bid on and played by any team.</span>
               )}
             </p>
           </div>

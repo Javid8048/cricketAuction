@@ -39,7 +39,7 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
     bowlingStyle: 'Right-arm medium',
     basePrice: 100,
     profileImage: '',
-    teamId: '',
+    belongingTeamName: '',
   });
 
   const [teams, setTeams] = useState<Team[]>([]);
@@ -225,7 +225,7 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
         battingStyle: formData.battingStyle,
         bowlingStyle: formData.bowlingStyle,
         basePrice: 100,
-        teamId: formData.teamId || undefined,
+        belongingTeamName: formData.belongingTeamName.trim() || undefined,
         profileImage: finalImage,
       };
 
@@ -307,12 +307,12 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
               <div className="flex justify-between text-slate-400">
                 <span>Belongs to Team:</span>
                 <span className="font-semibold text-white">
-                  {registeredPlayer.belongingTeam?.name ? (
+                  {registeredPlayer.belongingTeamName || registeredPlayer.belongingTeam?.name ? (
                     <span className="text-amber-300 font-bold">
-                      {registeredPlayer.belongingTeam.name}
+                      {registeredPlayer.belongingTeamName || registeredPlayer.belongingTeam?.name}
                     </span>
                   ) : (
-                    <span className="text-slate-400">Not Selected</span>
+                    <span className="text-slate-400">Independent / Open Pool</span>
                   )}
                 </span>
               </div>
@@ -340,7 +340,7 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
                     bowlingStyle: 'Right-arm medium',
                     basePrice: 100,
                     profileImage: '',
-                    teamId: '',
+                    belongingTeamName: '',
                   });
                   setCompressionInfo(null);
                   setTouched({});
@@ -716,35 +716,29 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
                 <label className="block text-xs font-semibold text-slate-300 flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-white">
                     <Shield className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Belonging Team (Optional)</span>
+                    <span>Belongs to Team / Club (Optional)</span>
                   </span>
                   <span className="text-[10px] text-slate-500 font-normal">
-                    Not mandatory
+                    Enter manually
                   </span>
                 </label>
                 <div className="relative">
-                  <select
-                    value={formData.teamId}
-                    onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
-                  >
-                    <option value="">Not Selected (New Player / Yet to decide - Independent Pool)</option>
-                    {teams.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.shortName})
-                      </option>
-                    ))}
-                  </select>
+                  <input
+                    type="text"
+                    value={formData.belongingTeamName}
+                    onChange={(e) => setFormData({ ...formData, belongingTeamName: e.target.value })}
+                    placeholder="Type your team or club name (e.g. Sunrise CC, Local XI, etc.)"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                  />
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  {formData.teamId ? (
+                  {formData.belongingTeamName ? (
                     <span className="text-amber-300 font-medium">
-                      You belong to{' '}
-                      <strong>{teams.find((t) => t.id === formData.teamId)?.name}</strong>. In the auction, players are shuffled into the pool so that even though you belong to this team, you can be bid on and played by any other team!
+                      You belong to <strong>{formData.belongingTeamName}</strong>. In the auction, players are shuffled into the pool so that even though you belong to this club, you can be bid on and played by any other team!
                     </span>
                   ) : (
                     <span>
-                      Independent / New talent (yet to be decided to add in a team). You will be shuffled into the auction pool and can be bid on by any team.
+                      Independent / New talent (leave blank if free agent). You will be shuffled into the auction pool and can be bid on by any team.
                     </span>
                   )}
                 </p>

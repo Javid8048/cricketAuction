@@ -91,8 +91,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({ playerId
                       <span>Player Belongs To (Home Affiliation):</span>
                     </span>
                     <span className="text-amber-300 font-bold">
-                      {player.belongingTeam?.name
-                        ? `${player.belongingTeam.name} (Can play for any team)`
+                      {player.belongingTeamName || player.belongingTeam?.name
+                        ? `${player.belongingTeamName || player.belongingTeam?.name} (Can play for any team)`
                         : 'Independent / Free Agent (Open Pool)'}
                     </span>
                   </div>

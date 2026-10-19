@@ -162,18 +162,18 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
 
             {/* Belonging Team & Bidding Freedom Badge */}
             <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              {player.belongingTeam ? (
+              {player.belongingTeamName || player.belongingTeam ? (
                 <span
                   className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border shadow-sm"
                   style={{
-                    borderColor: `${player.belongingTeam.primaryColor}55`,
-                    backgroundColor: `${player.belongingTeam.primaryColor}20`,
-                    color: player.belongingTeam.primaryColor,
+                    borderColor: player.belongingTeam?.primaryColor ? `${player.belongingTeam.primaryColor}55` : 'rgba(245, 158, 11, 0.4)',
+                    backgroundColor: player.belongingTeam?.primaryColor ? `${player.belongingTeam.primaryColor}20` : 'rgba(245, 158, 11, 0.1)',
+                    color: player.belongingTeam?.primaryColor || '#fbbf24',
                   }}
-                  title={`Belongs to ${player.belongingTeam.name}`}
+                  title={`Belongs to ${player.belongingTeamName || player.belongingTeam?.name}`}
                 >
                   <Shield className="w-3.5 h-3.5 shrink-0" />
-                  <span>Home: {player.belongingTeam.name}</span>
+                  <span>Home: {player.belongingTeamName || player.belongingTeam?.name}</span>
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-300 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-700/80">
