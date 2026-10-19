@@ -555,7 +555,22 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       const authTeamId = useAuthStore.getState().user?.teamId;
       const targetTeamId = teamId || authTeamId;
       const effectiveTeam = (targetTeamId ? state.teams.find((t) => t.id === targetTeamId) : null) || state.teams[0];
-      const targetAmount = amount || (state.currentBid + getMinBidIncrement(state.currentBid));
+      let targetAmount: number;
+      if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
+        targetAmount = Number(amount);
+      } else if (!state.highestBidTeam) {
+        targetAmount = Math.max(100, activeP.basePrice || 100);
+      } else {
+        targetAmount = state.currentBid + getMinBidIncrement(state.currentBid);
+      }
+
+      if (targetAmount < 100) {
+        throw new Error('Bid price must be greater than or equal to ₹100.');
+      }
+
+      if (state.highestBidTeam && targetAmount <= state.currentBid) {
+        throw new Error(`Bid must be higher than current leading bid of ${formatRupees(state.currentBid)}.`);
+      }
 
       if (activeP.isOverseas && (effectiveTeam.overseasCount || 0) >= effectiveTeam.maxOverseas) {
         throw new Error(`Overseas limit reached (${effectiveTeam.maxOverseas} max). Cannot bid on overseas player.`);

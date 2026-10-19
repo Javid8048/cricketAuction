@@ -40,10 +40,10 @@ export const ManualBidModal: React.FC<ManualBidModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Compute minimum valid bid
+  // Compute minimum valid bid: 100 when awaiting opening bid, or at least 100
   const minAllowedBid = !highestBidTeam
     ? Math.max(100, activePlayer?.basePrice || 100)
-    : currentBid + 100;
+    : Math.max(100, currentBid + 50);
 
   // Initialize form state whenever modal opens or active player/leading bid changes
   useEffect(() => {
@@ -52,7 +52,7 @@ export const ManualBidModal: React.FC<ManualBidModalProps> = ({
       setTeamSearch('');
       const defaultBid = !highestBidTeam
         ? Math.max(100, activePlayer?.basePrice || 100)
-        : currentBid + 100;
+        : Math.max(100, currentBid + 100);
       setBidAmount(defaultBid);
 
       // Pre-select first eligible team (not highest bidder)
@@ -123,6 +123,10 @@ export const ManualBidModal: React.FC<ManualBidModalProps> = ({
     }
     if (!selectedTeamId) {
       setErrorMsg('Please select a team to place the bid for.');
+      return;
+    }
+    if (numericBid < 100) {
+      setErrorMsg('Bid price must be greater than or equal to ₹100.');
       return;
     }
     if (numericBid < minAllowedBid) {
@@ -403,7 +407,7 @@ export const ManualBidModal: React.FC<ManualBidModalProps> = ({
               <span className="text-[10px] font-mono text-slate-400 uppercase font-semibold mr-1">
                 Presets:
               </span>
-              {[minAllowedBid, 500, 1000, 1500, 2000, 2500].filter((val, idx, arr) => val >= minAllowedBid && arr.indexOf(val) === idx).map((preset) => (
+              {[100, minAllowedBid, 200, 500, 1000, 1500, 2000, 2500].filter((val, idx, arr) => val >= minAllowedBid && arr.indexOf(val) === idx).map((preset) => (
                 <button
                   key={preset}
                   type="button"

@@ -35,6 +35,11 @@ export const LiveBiddingArea: React.FC = () => {
   const isHighestBidder = userTeam && highestBidTeam?.id === userTeam.id;
   const isOverseasLimitReached = Boolean(activePlayer?.isOverseas && userTeam && (userTeam.overseasCount || 0) >= userTeam.maxOverseas);
 
+  // Minimum allowed custom bid: 100 when awaiting opening bid, or next increment above current bid
+  const minAllowedCustomBid = !highestBidTeam
+    ? Math.max(100, activePlayer?.basePrice || 100)
+    : currentBid + 100;
+
   // Dynamic tournament increment amounts (+ ₹100, + ₹200, + ₹500, + ₹1,000)
   const getDynamicIncrements = () => {
     return [
@@ -50,7 +55,10 @@ export const LiveBiddingArea: React.FC = () => {
   const handleStandardBid = async (inc: number) => {
     setBiddingError(null);
     try {
-      const nextAmount = currentBid + inc;
+      // If no bid placed yet and + ₹100 is chosen, open bid at base / ₹100
+      const nextAmount = !highestBidTeam && inc === 100
+        ? Math.max(100, activePlayer?.basePrice || 100)
+        : currentBid + inc;
       await placeBid(nextAmount, userTeam?.id);
     } catch (err: any) {
       setBiddingError(err.message);
@@ -60,7 +68,8 @@ export const LiveBiddingArea: React.FC = () => {
   const handleBaseBid = async () => {
     setBiddingError(null);
     try {
-      await placeBid(undefined, userTeam?.id);
+      const openAmount = Math.max(100, activePlayer?.basePrice || 100);
+      await placeBid(openAmount, userTeam?.id);
     } catch (err: any) {
       setBiddingError(err.message);
     }
@@ -70,8 +79,19 @@ export const LiveBiddingArea: React.FC = () => {
     e.preventDefault();
     setBiddingError(null);
     const parsed = parseInt(customBidInput, 10);
-    if (isNaN(parsed) || parsed <= currentBid) {
-      setBiddingError(`Please enter a valid bid amount greater than current bid (${formatRupees(currentBid)}).`);
+    if (isNaN(parsed) || parsed < 100) {
+      setBiddingError('Bid price must be greater than or equal to ₹100.');
+      return;
+    }
+
+    if (!highestBidTeam) {
+      const minOpen = Math.max(100, activePlayer?.basePrice || 100);
+      if (parsed < minOpen) {
+        setBiddingError(`Opening bid must be at least ${formatRupees(minOpen)}.`);
+        return;
+      }
+    } else if (parsed <= currentBid) {
+      setBiddingError(`Bid must be higher than current leading bid of ${formatRupees(currentBid)}.`);
       return;
     }
 
@@ -271,10 +291,10 @@ export const LiveBiddingArea: React.FC = () => {
                 <input
                   type="number"
                   step="50"
-                  min={currentBid + 100}
+                  min={minAllowedCustomBid}
                   value={customBidInput}
                   onChange={(e) => setCustomBidInput(e.target.value)}
-                  placeholder={`Custom ₹ (min ${formatRupees(currentBid + 100)})`}
+                  placeholder={`Custom ₹ (min ${formatRupees(minAllowedCustomBid)})`}
                   disabled={!isAuctionActive || isBidding || isHighestBidder || isOverseasLimitReached}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors disabled:opacity-50"
                 />
