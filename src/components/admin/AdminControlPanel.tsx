@@ -16,12 +16,14 @@ import {
   AlertTriangle,
   Shuffle,
   Clock,
+  Gavel,
 } from 'lucide-react';
 import { useAuctionStore } from '../../store/auction.store';
 import { api } from '../../services/api';
 import { Player, Team } from '../../types';
 import { formatRupees } from '../../utils/currency';
 import { ManualAssignPlayerModal } from './ManualAssignPlayerModal';
+import { ManualBidModal } from './ManualBidModal';
 
 export const AdminControlPanel: React.FC = () => {
   const { state, isStandaloneMode, adminActionStandalone, manuallyAssignPlayer } = useAuctionStore();
@@ -29,6 +31,7 @@ export const AdminControlPanel: React.FC = () => {
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [loadingAction, setLoadingAction] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isManualBidModalOpen, setIsManualBidModalOpen] = useState(false);
 
   const auction = state?.auction;
   const activePlayer = state?.activePlayer;
@@ -121,16 +124,30 @@ export const AdminControlPanel: React.FC = () => {
           </button>
         </div>
 
-        {/* Manual Assign Pop-up Modal Button */}
-        <button
-          type="button"
-          onClick={() => setIsAssignModalOpen(true)}
-          className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 hover:from-emerald-500/30 hover:to-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95 self-start lg:self-auto"
-          title="Open Manual Assign Pop-up Modal"
-        >
-          <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Manual Assign (Pop-up)</span>
-        </button>
+        {/* Commissioner Header Actions */}
+        <div className="flex items-center gap-2 flex-wrap self-start lg:self-auto">
+          {/* Manual Bid Pop-up Modal Button */}
+          <button
+            type="button"
+            onClick={() => setIsManualBidModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/10 hover:from-amber-500/30 hover:to-amber-600/20 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+            title="Open Manual Bid Pop-up Modal to place a bid on behalf of any team"
+          >
+            <Gavel className="w-3.5 h-3.5 text-amber-400" />
+            <span>Manual Bid (Pop-up)</span>
+          </button>
+
+          {/* Manual Assign Pop-up Modal Button */}
+          <button
+            type="button"
+            onClick={() => setIsAssignModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 hover:from-emerald-500/30 hover:to-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+            title="Open Manual Assign Pop-up Modal"
+          >
+            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Manual Assign (Pop-up)</span>
+          </button>
+        </div>
       </div>
 
       {/* Introduce Player to Auction Block */}
@@ -213,6 +230,17 @@ export const AdminControlPanel: React.FC = () => {
           >
             <Play className="w-5 h-5 text-sky-400" />
             <span>START BID TIMER</span>
+          </button>
+
+          {/* MANUAL BID FOR TEAM (POP-UP) */}
+          <button
+            onClick={() => setIsManualBidModalOpen(true)}
+            disabled={loadingAction || !auction?.activePlayerId}
+            className="p-3 rounded-xl bg-gradient-to-b from-sky-500/25 to-sky-600/15 hover:from-sky-500/35 hover:to-sky-600/25 border-2 border-sky-500/60 text-sky-300 text-xs font-bold flex flex-col items-center gap-1.5 transition-all active:scale-95 disabled:opacity-40 shadow-lg shadow-sky-500/10"
+            title="Open separate Manual Bid Pop-up to place a bid for any team"
+          >
+            <Gavel className="w-5 h-5 text-sky-400" />
+            <span>MANUAL BID</span>
           </button>
 
           {/* CONFIRM SOLD TO BIDDER */}
@@ -334,6 +362,12 @@ export const AdminControlPanel: React.FC = () => {
         onSuccess={() => {
           api.getPlayers().then(setAllPlayers).catch(console.error);
         }}
+      />
+
+      {/* Manual Bid Modal */}
+      <ManualBidModal
+        isOpen={isManualBidModalOpen}
+        onClose={() => setIsManualBidModalOpen(false)}
       />
     </div>
   );

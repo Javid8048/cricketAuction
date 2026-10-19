@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Timer, ArrowUpRight, ShieldAlert, Sparkles, Check, AlertCircle, Zap } from 'lucide-react';
+import { Timer, ArrowUpRight, ShieldAlert, Sparkles, Check, AlertCircle, Zap, Gavel } from 'lucide-react';
 import { useAuctionStore } from '../../store/auction.store';
 import { useAuthStore } from '../../store/auth.store';
 import { formatRupees } from '../../utils/currency';
 import { ManualAssignPlayerModal } from '../admin/ManualAssignPlayerModal';
+import { ManualBidModal } from '../admin/ManualBidModal';
 
 export const LiveBiddingArea: React.FC = () => {
   const {
@@ -20,6 +21,7 @@ export const LiveBiddingArea: React.FC = () => {
   const [customBidInput, setCustomBidInput] = useState('');
   const [biddingError, setBiddingError] = useState<string | null>(null);
   const [isManualAssignOpen, setIsManualAssignOpen] = useState(false);
+  const [isManualBidOpen, setIsManualBidOpen] = useState(false);
 
   const auction = state?.auction;
   const currentBid = state?.currentBid || 0;
@@ -287,20 +289,31 @@ export const LiveBiddingArea: React.FC = () => {
               </button>
             </form>
 
-            {/* Admin Override: Manually assign player directly from bidding area */}
+            {/* Commissioner Override Controls */}
             {isAdmin && activePlayer && (
-              <div className="mt-3.5 pt-3 border-t border-slate-800 flex items-center justify-between">
+              <div className="mt-3.5 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-[11px] text-slate-400 font-medium">
-                  Commissioner Option 2:
+                  Commissioner Controls:
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setIsManualAssignOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
-                >
-                  <Zap className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
-                  <span>Sold To Team (Manual Assign)</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setIsManualBidOpen(true)}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+                    title="Open Manual Bid Pop-up to place bid on behalf of any team"
+                  >
+                    <Gavel className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Manual Bid (Pop-up)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsManualAssignOpen(true)}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
+                    <span>Sold To Team (Manual Assign)</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -312,6 +325,12 @@ export const LiveBiddingArea: React.FC = () => {
         isOpen={isManualAssignOpen}
         onClose={() => setIsManualAssignOpen(false)}
         defaultPlayerId={activePlayer?.id}
+      />
+
+      {/* Manual Bid Modal */}
+      <ManualBidModal
+        isOpen={isManualBidOpen}
+        onClose={() => setIsManualBidOpen(false)}
       />
     </div>
   );
