@@ -325,6 +325,7 @@ export const LiveBiddingArea: React.FC = () => {
         isOpen={isManualAssignOpen}
         onClose={() => setIsManualAssignOpen(false)}
         defaultPlayerId={activePlayer?.id}
+        player={activePlayer}
       />
 
       {/* Manual Bid Modal */}

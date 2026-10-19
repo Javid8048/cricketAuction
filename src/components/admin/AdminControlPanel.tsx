@@ -359,6 +359,7 @@ export const AdminControlPanel: React.FC = () => {
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
         defaultPlayerId={activePlayer?.id}
+        player={activePlayer}
         onSuccess={() => {
           api.getPlayers().then(setAllPlayers).catch(console.error);
         }}

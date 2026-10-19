@@ -1159,6 +1159,7 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
         isOpen={Boolean(assignModalPlayerId)}
         onClose={() => setAssignModalPlayerId(null)}
         defaultPlayerId={assignModalPlayerId}
+        player={players.find((p) => p.id === assignModalPlayerId) || null}
         onSuccess={loadPlayers}
       />
     </div>
