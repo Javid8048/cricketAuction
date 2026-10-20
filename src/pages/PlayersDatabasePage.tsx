@@ -547,28 +547,32 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
                     </div>
                     {/* Team Affiliation and Squad Status Badges */}
                     <div className="mt-1.5 flex flex-wrap gap-1">
-                      {p.belongingTeamName || p.belongingTeam ? (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"
-                          style={{
-                            borderColor: p.belongingTeam?.primaryColor ? `${p.belongingTeam.primaryColor}55` : 'rgba(245, 158, 11, 0.4)',
-                            backgroundColor: p.belongingTeam?.primaryColor ? `${p.belongingTeam.primaryColor}20` : 'rgba(245, 158, 11, 0.1)',
-                            color: p.belongingTeam?.primaryColor || '#fbbf24',
-                          }}
-                          title={`Belongs to ${p.belongingTeamName || p.belongingTeam?.name} (Can be bid on and played by any team in auction)`}
-                        >
-                          <Shield className="w-2.5 h-2.5 shrink-0" />
-                          <span className="truncate">Belongs to: {p.belongingTeamName || p.belongingTeam?.name}</span>
-                        </span>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 font-medium"
-                          title="Independent talent / Free Agent (Can be bid on by any team)"
-                        >
-                          <Shield className="w-2.5 h-2.5 text-slate-600" />
-                          <span>Belongs to: Independent</span>
-                        </span>
-                      )}
+                      {(() => {
+                        const pOwnTeamName = p.belongingTeamName || p.belongingTeam?.name || (p.belongingTeamId ? teams.find(t => t.id === p.belongingTeamId)?.name : null);
+                        const pOwnTeam = p.belongingTeam || (p.belongingTeamId ? teams.find(t => t.id === p.belongingTeamId) : null);
+                        return pOwnTeamName ? (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"
+                            style={{
+                              borderColor: pOwnTeam?.primaryColor ? `${pOwnTeam.primaryColor}55` : 'rgba(245, 158, 11, 0.4)',
+                              backgroundColor: pOwnTeam?.primaryColor ? `${pOwnTeam.primaryColor}20` : 'rgba(245, 158, 11, 0.1)',
+                              color: pOwnTeam?.primaryColor || '#fbbf24',
+                            }}
+                            title={`Own Team: ${pOwnTeamName} (Can be bid on and played by any team in auction)`}
+                          >
+                            <Shield className="w-2.5 h-2.5 shrink-0" />
+                            <span className="truncate">Own Team: {pOwnTeamName}</span>
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 font-medium"
+                            title="Independent talent / Free Agent (Can be bid on by any team)"
+                          >
+                            <Shield className="w-2.5 h-2.5 text-slate-600" />
+                            <span>Own Team: Open Pool</span>
+                          </span>
+                        );
+                      })()}
 
                       {p.status === 'SOLD' && p.teamPlayer?.team ? (
                         <span

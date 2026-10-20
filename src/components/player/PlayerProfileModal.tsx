@@ -88,12 +88,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({ playerId
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400 font-semibold flex items-center gap-1.5">
                       <Shield className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Player Belongs To (Home Affiliation):</span>
+                      <span>Own Team (Home Affiliation):</span>
                     </span>
                     <span className="text-amber-300 font-bold">
                       {player.belongingTeamName || player.belongingTeam?.name
-                        ? `${player.belongingTeamName || player.belongingTeam?.name} (Can play for any team)`
-                        : 'Independent / Free Agent (Open Pool)'}
+                        ? `${player.belongingTeamName || player.belongingTeam?.name} (Open pool for all teams)`
+                        : 'Open Pool (Independent)'}
                     </span>
                   </div>
 

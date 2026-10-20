@@ -16,6 +16,26 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
 
+  // Resolve Own Team (Home Club Affiliation)
+  const ownTeam = player
+    ? player.belongingTeam ||
+      (player.belongingTeamId ? state?.teams?.find((t) => t.id === player.belongingTeamId) : null) ||
+      (player.belongingTeamName
+        ? state?.teams?.find(
+            (t) =>
+              t.name.toLowerCase() === player.belongingTeamName!.toLowerCase() ||
+              t.shortName.toLowerCase() === player.belongingTeamName!.toLowerCase()
+          )
+        : null)
+    : null;
+
+  const ownTeamName = player
+    ? player.belongingTeamName ||
+      ownTeam?.name ||
+      player.belongingTeam?.name ||
+      (player.belongingTeamId ? state?.teams?.find((t) => t.id === player.belongingTeamId)?.name : null)
+    : null;
+
   if (!player) {
     const unsoldPlayers = state?.players?.filter((p) => p.status === 'UNSOLD') || [];
 
@@ -160,25 +180,25 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
               </div>
             </div>
 
-            {/* Belonging Team & Bidding Freedom Badge */}
+            {/* Own Team & Bidding Freedom Badge */}
             <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              {player.belongingTeamName || player.belongingTeam ? (
+              {ownTeamName ? (
                 <span
                   className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border shadow-sm"
                   style={{
-                    borderColor: player.belongingTeam?.primaryColor ? `${player.belongingTeam.primaryColor}55` : 'rgba(245, 158, 11, 0.4)',
-                    backgroundColor: player.belongingTeam?.primaryColor ? `${player.belongingTeam.primaryColor}20` : 'rgba(245, 158, 11, 0.1)',
-                    color: player.belongingTeam?.primaryColor || '#fbbf24',
+                    borderColor: ownTeam?.primaryColor ? `${ownTeam.primaryColor}55` : 'rgba(245, 158, 11, 0.4)',
+                    backgroundColor: ownTeam?.primaryColor ? `${ownTeam.primaryColor}20` : 'rgba(245, 158, 11, 0.1)',
+                    color: ownTeam?.primaryColor || '#fbbf24',
                   }}
-                  title={`Belongs to ${player.belongingTeamName || player.belongingTeam?.name}`}
+                  title={`Own Team: ${ownTeamName}`}
                 >
                   <Shield className="w-3.5 h-3.5 shrink-0" />
-                  <span>Home: {player.belongingTeamName || player.belongingTeam?.name}</span>
+                  <span>Own Team: {ownTeamName}</span>
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-300 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-700/80">
                   <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>Independent / Open Pool</span>
+                  <span>Own Team: Open Pool</span>
                 </span>
               )}
 

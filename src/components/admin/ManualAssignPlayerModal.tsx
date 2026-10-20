@@ -289,9 +289,9 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
                   <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 truncate">
                     <Shield className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     <span>
-                      Home Affiliation:{' '}
+                      Own Team:{' '}
                       <strong className="text-amber-300">
-                        {selectedPlayer.belongingTeamName || selectedPlayer.belongingTeam?.name || 'Independent / Open Pool'}
+                        {selectedPlayer.belongingTeamName || selectedPlayer.belongingTeam?.name || (selectedPlayer.belongingTeamId ? teams.find(t => t.id === selectedPlayer.belongingTeamId)?.name : null) || 'Independent / Open Pool'}
                       </strong>
                     </span>
                   </div>

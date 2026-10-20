@@ -193,21 +193,66 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const payload = {
-        ...formData,
+      let matchedTeamId: string | null = null;
+      if (formData.belongingTeamName && formData.belongingTeamName.trim()) {
+        const trimmed = formData.belongingTeamName.trim().toLowerCase();
+        const found = teams.find(
+          (t) => t.name.toLowerCase() === trimmed || t.shortName.toLowerCase() === trimmed
+        );
+        if (found) {
+          matchedTeamId = found.id;
+        }
+      }
+
+      const effectiveBelongingTeamId = matchedTeamId || (formData.belongingTeamId && formData.belongingTeamId !== 'NONE' ? formData.belongingTeamId : 'NONE');
+
+      const payload: any = {
         name: formData.name.trim(),
+        country: formData.country || 'India',
+        dob: formData.dob || null,
         age: Number(formData.age) || 24,
-        basePrice: Number(formData.basePrice) || 100,
-        place: formData.place.trim(),
-        phone: formData.phone.trim(),
-        belongingTeamName: formData.belongingTeamName ? formData.belongingTeamName.trim() : null,
-        belongingTeamId: formData.belongingTeamId ? formData.belongingTeamId : 'NONE',
+        place: formData.place ? formData.place.trim() : null,
+        phone: formData.phone ? formData.phone.trim() : null,
+        role: formData.role || 'All-Rounder',
+        battingStyle: formData.battingStyle || 'Right-hand bat',
+        bowlingStyle: formData.bowlingStyle || 'Right-arm medium',
+        basePrice: Number(formData.basePrice) > 0 ? Number(formData.basePrice) : 100,
+        category: formData.category || 'Local Talent',
+        profileImage: formData.profileImage || player.profileImage,
+        belongingTeamName: formData.belongingTeamName && formData.belongingTeamName.trim() ? formData.belongingTeamName.trim() : null,
+        belongingTeamId: effectiveBelongingTeamId,
         soldToTeamId: formData.soldToTeamId ? formData.soldToTeamId : 'NONE',
         soldPrice: formData.soldToTeamId ? Number(formData.soldPrice) : null,
+        matches: Number(formData.matches) || 0,
+        runs: Number(formData.runs) || 0,
+        battingAvg: Number(formData.battingAvg) || 0,
+        strikeRate: Number(formData.strikeRate) || 0,
+        wickets: Number(formData.wickets) || 0,
+        economy: Number(formData.economy) || 0,
+        highestScore: Number(formData.highestScore) || 0,
       };
 
-      const updated = await api.updatePlayer(player.id, payload);
-      onSuccess(updated);
+      let updated;
+      try {
+        updated = await api.updatePlayer(player.id, payload);
+      } catch (err: any) {
+        // Fallback retry if deployed backend rejects belongingTeamName as unknown argument
+        if (err.message && (err.message.includes('belongingTeamName') || err.message.includes('Unknown argument'))) {
+          const fallbackPayload = { ...payload };
+          delete fallbackPayload.belongingTeamName;
+          updated = await api.updatePlayer(player.id, fallbackPayload);
+        } else {
+          throw err;
+        }
+      }
+
+      const finalPlayer = {
+        ...player,
+        ...updated,
+        belongingTeamName: formData.belongingTeamName ? formData.belongingTeamName.trim() : null,
+      };
+
+      onSuccess(finalPlayer);
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to update cricketer.');
@@ -542,12 +587,12 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
           </div>
         </div>
 
-        {/* OPTION 1: PLAYER BELONGS TO (HOME TEAM / CLUB AFFILIATION) */}
+        {/* OPTION 1: PLAYER OWN TEAM (HOME TEAM / CLUB AFFILIATION) */}
         <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
           <label className="block text-xs font-bold text-white flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Shield className="w-4 h-4 text-amber-400" />
-              <span>Option 1: Player Belongs To (Home Team / Club Name)</span>
+              <span>Player Own Team (Home Club / Team Name)</span>
             </span>
             <span className="text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
               Open to Any Team
@@ -556,23 +601,29 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
           <div className="relative">
             <input
               type="text"
+              list="registered-teams-list"
               value={formData.belongingTeamName}
               onChange={(e) => setFormData({ ...formData, belongingTeamName: e.target.value })}
               placeholder="e.g. Chennai Super Kings, Local Club XI, Independent, etc."
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
             />
+            <datalist id="registered-teams-list">
+              {teams.map((t) => (
+                <option key={t.id} value={t.name} />
+              ))}
+            </datalist>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
             {formData.belongingTeamName ? (
               <span className="text-amber-300 font-medium">
-                🏠 Player belongs to <strong>{formData.belongingTeamName}</strong>.
+                🛡️ Own Team: <strong>{formData.belongingTeamName}</strong>.
                 <span className="text-slate-400 block mt-0.5">
                   <em>Note: This is an auction tournament, hence this player is in the open draft pool and can be bid on and played by ANY team!</em>
                 </span>
               </span>
             ) : (
               <span className="text-slate-400">
-                🌐 Independent talent (No home club affiliation). Placed in open pool and can be bid on by any team.
+                🌐 Independent talent (Open Pool). Placed in open pool and can be bid on by any team.
               </span>
             )}
           </p>
