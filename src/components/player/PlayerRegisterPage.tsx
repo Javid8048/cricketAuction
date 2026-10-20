@@ -225,6 +225,7 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
         battingStyle: formData.battingStyle,
         bowlingStyle: formData.bowlingStyle,
         basePrice: 100,
+        belongingTeamId: formData.belongingTeamName.trim() || undefined,
         belongingTeamName: formData.belongingTeamName.trim() || undefined,
         profileImage: finalImage,
       };
@@ -307,9 +308,9 @@ export const PlayerRegisterPage: React.FC<PlayerRegisterPageProps> = ({ onBackTo
               <div className="flex justify-between text-slate-400">
                 <span>Belongs to Team:</span>
                 <span className="font-semibold text-white">
-                  {registeredPlayer.belongingTeamName || registeredPlayer.belongingTeam?.name ? (
+                  {registeredPlayer.belongingTeamId || registeredPlayer.belongingTeamName || registeredPlayer.belongingTeam?.name ? (
                     <span className="text-amber-300 font-bold">
-                      {registeredPlayer.belongingTeamName || registeredPlayer.belongingTeam?.name}
+                      {registeredPlayer.belongingTeamId || registeredPlayer.belongingTeamName || registeredPlayer.belongingTeam?.name}
                     </span>
                   ) : (
                     <span className="text-slate-400">Independent / Open Pool</span>

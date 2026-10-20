@@ -18,14 +18,15 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
   const isAdmin = user?.role === 'ADMIN';
 
   // Resolve Own Team (Home Club Affiliation)
+  const rawOwnTeam = player?.belongingTeamId || player?.belongingTeamName;
   const ownTeam = player
     ? player.belongingTeam ||
-      (player.belongingTeamId ? state?.teams?.find((t) => t.id === player.belongingTeamId) : null) ||
-      (player.belongingTeamName
+      (rawOwnTeam
         ? state?.teams?.find(
             (t) =>
-              t.name.toLowerCase() === player.belongingTeamName!.toLowerCase() ||
-              t.shortName.toLowerCase() === player.belongingTeamName!.toLowerCase()
+              t.id === rawOwnTeam ||
+              t.name.toLowerCase() === rawOwnTeam.toLowerCase() ||
+              t.shortName.toLowerCase() === rawOwnTeam.toLowerCase()
           )
         : null)
     : null;
@@ -33,10 +34,11 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
   const customOwnTeam = player ? getCustomOwnTeam(player.id) : null;
   const ownTeamName = player
     ? customOwnTeam ||
+      player.belongingTeamId ||
       player.belongingTeamName ||
       ownTeam?.name ||
       player.belongingTeam?.name ||
-      (player.belongingTeamId ? state?.teams?.find((t) => t.id === player.belongingTeamId)?.name : null)
+      null
     : null;
 
   if (!player) {

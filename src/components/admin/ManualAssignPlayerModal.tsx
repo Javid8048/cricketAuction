@@ -292,7 +292,7 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
                     <span>
                       Own Team:{' '}
                       <strong className="text-amber-300">
-                        {getCustomOwnTeam(selectedPlayer.id) || selectedPlayer.belongingTeamName || selectedPlayer.belongingTeam?.name || (selectedPlayer.belongingTeamId ? teams.find(t => t.id === selectedPlayer.belongingTeamId)?.name : null) || 'Independent / Open Pool'}
+                        {getCustomOwnTeam(selectedPlayer.id) || selectedPlayer.belongingTeamId || selectedPlayer.belongingTeamName || selectedPlayer.belongingTeam?.name || (selectedPlayer.belongingTeamId ? teams.find(t => t.id === selectedPlayer.belongingTeamId)?.name : null) || 'Independent / Open Pool'}
                       </strong>
                     </span>
                   </div>

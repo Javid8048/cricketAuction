@@ -92,9 +92,10 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({ playerId
                       <span>Own Team (Home Affiliation):</span>
                     </span>
                     <span className="text-amber-300 font-bold">
-                      {getCustomOwnTeam(player.id) || player.belongingTeamName || player.belongingTeam?.name
-                        ? `${getCustomOwnTeam(player.id) || player.belongingTeamName || player.belongingTeam?.name} (Open pool for all teams)`
-                        : 'Open Pool (Independent)'}
+                      {(() => {
+                        const t = getCustomOwnTeam(player.id) || player.belongingTeamId || player.belongingTeamName || player.belongingTeam?.name;
+                        return t ? `${t} (Open pool for all teams)` : 'Open Pool (Independent)';
+                      })()}
                     </span>
                   </div>
 

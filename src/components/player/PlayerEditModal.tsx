@@ -92,8 +92,8 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         basePrice: player.basePrice || 100,
         category: player.category || 'Local Talent',
         profileImage: player.profileImage || '',
-        belongingTeamName: getCustomOwnTeam(player.id) || player.belongingTeamName || player.belongingTeam?.name || '',
-        belongingTeamId: player.belongingTeamId || player.belongingTeam?.id || '',
+        belongingTeamName: getCustomOwnTeam(player.id) || player.belongingTeamId || player.belongingTeamName || player.belongingTeam?.name || '',
+        belongingTeamId: getCustomOwnTeam(player.id) || player.belongingTeamId || player.belongingTeamName || player.belongingTeam?.name || '',
         soldToTeamId: (player.status === 'SOLD' && (player.teamPlayer?.teamId || player.teamPlayer?.team?.id)) ? (player.teamPlayer?.teamId || player.teamPlayer?.team?.id || '') : '',
         soldPrice: existingSoldPrice >= 100 && existingSoldPrice <= 2500 ? existingSoldPrice : 100,
         matches: player.matches || 0,
@@ -236,12 +236,9 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         highestScore: Number(formData.highestScore) || 0,
       };
 
-      // Connect or disconnect belonging team relation
-      if (matchedTeamId) {
-        payload.belongingTeam = { connect: { id: matchedTeamId } };
-      } else if (player.belongingTeam || player.belongingTeamId) {
-        payload.belongingTeam = { disconnect: true };
-      }
+      // Update belonging team as text (no foreign key constraint)
+      payload.belongingTeamId = rawTeamName || null;
+      payload.belongingTeamName = rawTeamName || null;
 
       const updated = await api.updatePlayer(player.id, payload);
 
@@ -258,9 +255,9 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
       const finalPlayer = {
         ...player,
         ...updated,
-        belongingTeam: matchedTeamObj || (rawTeamName && !matchedTeamId ? null : updated.belongingTeam),
+        belongingTeam: matchedTeamObj,
         belongingTeamName: rawTeamName || null,
-        belongingTeamId: matchedTeamId || null,
+        belongingTeamId: rawTeamName || null,
       };
 
       onSuccess(finalPlayer);
@@ -614,7 +611,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
               type="text"
               list="registered-teams-list"
               value={formData.belongingTeamName}
-              onChange={(e) => setFormData({ ...formData, belongingTeamName: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, belongingTeamName: e.target.value, belongingTeamId: e.target.value })}
               placeholder="e.g. Chennai Super Kings, Local Club XI, Independent, etc."
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
             />

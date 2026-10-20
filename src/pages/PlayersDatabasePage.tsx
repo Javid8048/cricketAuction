@@ -203,10 +203,16 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
     if (categoryFilter !== 'ALL' && p.category !== categoryFilter) return false;
     if (statusFilter !== 'ALL' && p.status !== statusFilter) return false;
     if (belongingTeamFilter !== 'ALL') {
+      const pTeam = p.belongingTeamId || p.belongingTeamName || p.belongingTeam?.id || p.belongingTeam?.name;
       if (belongingTeamFilter === 'NONE') {
-        if (p.belongingTeamId || p.belongingTeam) return false;
+        if (pTeam) return false;
       } else {
-        if (p.belongingTeamId !== belongingTeamFilter && p.belongingTeam?.id !== belongingTeamFilter) return false;
+        const matchesFilter =
+          p.belongingTeamId === belongingTeamFilter ||
+          p.belongingTeamName === belongingTeamFilter ||
+          p.belongingTeam?.id === belongingTeamFilter ||
+          p.belongingTeam?.name === belongingTeamFilter;
+        if (!matchesFilter) return false;
       }
     }
     if (soldToTeamFilter !== 'ALL') {
@@ -236,6 +242,7 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
         basePrice: Number(newPlayer.basePrice) || 100,
         place: newPlayer.place.trim(),
         phone: newPlayer.phone.trim(),
+        belongingTeamId: newPlayer.belongingTeamName ? newPlayer.belongingTeamName.trim() : undefined,
         belongingTeamName: newPlayer.belongingTeamName ? newPlayer.belongingTeamName.trim() : undefined,
         teamId: newPlayer.teamId || undefined,
         isOverseas: newPlayer.country ? newPlayer.country.toLowerCase() !== 'india' : false,
@@ -310,7 +317,7 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
       p.phone || '',
       p.basePrice,
       p.status,
-      p.belongingTeamName || p.belongingTeam?.name || '',
+      p.belongingTeamId || p.belongingTeamName || p.belongingTeam?.name || '',
       p.teamPlayer?.team?.name || '',
       p.currentPrice || '',
     ]);
@@ -549,8 +556,9 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
                     {/* Team Affiliation and Squad Status Badges */}
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {(() => {
-                        const pOwnTeamName = getCustomOwnTeam(p.id) || p.belongingTeamName || p.belongingTeam?.name || (p.belongingTeamId ? teams.find(t => t.id === p.belongingTeamId)?.name : null);
-                        const pOwnTeam = p.belongingTeam || (p.belongingTeamId ? teams.find(t => t.id === p.belongingTeamId) : null);
+                        const rawTeam = p.belongingTeamId || p.belongingTeamName;
+                        const pOwnTeam = p.belongingTeam || (rawTeam ? teams.find(t => t.id === rawTeam || t.name.toLowerCase() === rawTeam.toLowerCase() || t.shortName.toLowerCase() === rawTeam.toLowerCase()) : null);
+                        const pOwnTeamName = getCustomOwnTeam(p.id) || rawTeam || pOwnTeam?.name || p.belongingTeam?.name || null;
                         return pOwnTeamName ? (
                           <span
                             className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate max-w-full"

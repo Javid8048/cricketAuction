@@ -27,7 +27,13 @@ export const ManualSellModal: React.FC<ManualSellModalProps> = ({ isOpen, onClos
       const defaultPrice = currentBid > 0 ? currentBid : activePlayer.basePrice;
       setSalePrice(defaultPrice);
       setCustomPriceInput(String(defaultPrice));
-      const initialTeamId = state?.highestBidTeam?.id || activePlayer.belongingTeamId || activePlayer.belongingTeam?.id || '';
+      const matchedBelongingTeam = state?.teams?.find(
+        (t) =>
+          t.id === activePlayer.belongingTeamId ||
+          t.name.toLowerCase() === activePlayer.belongingTeamId?.toLowerCase() ||
+          t.shortName.toLowerCase() === activePlayer.belongingTeamId?.toLowerCase()
+      );
+      const initialTeamId = state?.highestBidTeam?.id || matchedBelongingTeam?.id || activePlayer.belongingTeam?.id || '';
       setSelectedTeamId(initialTeamId);
       setErrorMsg(null);
     }
