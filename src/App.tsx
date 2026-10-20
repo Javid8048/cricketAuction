@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
-import { Menu, Flame, LayoutTemplate } from 'lucide-react';
+import { Menu, Flame, LayoutTemplate, Settings } from 'lucide-react';
 import { Navbar } from './components/common/Navbar';
 import { Sidebar } from './components/common/Sidebar';
 import { Toast } from './components/common/Toast';
@@ -323,14 +323,30 @@ export function App() {
             </div>
           </div>
 
-          <button
-            onClick={toggleLayoutMode}
-            className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-mono text-amber-300 flex items-center gap-1.5 transition-colors"
-            title="Switch to Topbar mode"
-          >
-            <LayoutTemplate className="w-3.5 h-3.5 text-amber-400" />
-            <span>Topbar</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            {user?.role === 'ADMIN' && (
+              <button
+                onClick={() => handleTabChange('settings')}
+                title="Auction Settings"
+                className={`p-1.5 rounded-lg border transition-colors flex items-center justify-center ${
+                  currentTab === 'settings'
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                    : 'bg-slate-800/80 text-slate-300 hover:text-amber-400 hover:bg-slate-700/80 border-slate-700/60'
+                }`}
+              >
+                <Settings className="w-4 h-4 text-amber-400" />
+              </button>
+            )}
+
+            <button
+              onClick={toggleLayoutMode}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-mono text-amber-300 flex items-center gap-1.5 transition-colors"
+              title="Switch to Topbar mode"
+            >
+              <LayoutTemplate className="w-3.5 h-3.5 text-amber-400" />
+              <span>Topbar</span>
+            </button>
+          </div>
         </div>
       )}
 

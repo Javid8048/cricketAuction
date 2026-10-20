@@ -256,7 +256,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Admin Settings & Icon Modals */}
           {user?.role === 'ADMIN' && (
-            <div className="hidden sm:flex items-center gap-1">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => onSelectTab('settings')}
                 title="Auction Settings (Timer, Auto-sell, Squad Limit)"
@@ -517,17 +517,32 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {user?.role === 'ADMIN' && (
-              <button
-                onClick={() => onSelectTab('admin-dashboard')}
-                className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-[10px] font-semibold transition-colors ${
-                  currentTab === 'admin-dashboard'
-                    ? 'text-amber-400 font-bold bg-amber-500/10'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Shield className="w-4 h-4" />
-                <span>Admin</span>
-              </button>
+              <>
+                <button
+                  onClick={() => onSelectTab('admin-dashboard')}
+                  className={`flex flex-col items-center gap-1 py-1 px-2 sm:px-2.5 rounded-xl text-[10px] font-semibold transition-colors ${
+                    currentTab === 'admin-dashboard'
+                      ? 'text-amber-400 font-bold bg-amber-500/10'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>Admin</span>
+                </button>
+
+                <button
+                  onClick={() => onSelectTab('settings')}
+                  className={`flex flex-col items-center gap-1 py-1 px-2 sm:px-2.5 rounded-xl text-[10px] font-semibold transition-colors ${
+                    currentTab === 'settings'
+                      ? 'text-amber-400 font-bold bg-amber-500/10'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Auction Settings"
+                >
+                  <Settings className="w-4 h-4 text-amber-400" />
+                  <span>Settings</span>
+                </button>
+              </>
             )}
 
             {user?.role === 'TEAM' && (
