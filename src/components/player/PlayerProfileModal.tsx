@@ -3,6 +3,7 @@ import { Modal } from '../common/Modal';
 import { Player } from '../../types';
 import { api } from '../../services/api';
 import { formatRupees } from '../../utils/currency';
+import { getCustomOwnTeam } from '../../utils/customTeams';
 import { Globe, Award, Shield, User, Trophy, Calendar } from 'lucide-react';
 
 interface PlayerProfileModalProps {
@@ -91,8 +92,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({ playerId
                       <span>Own Team (Home Affiliation):</span>
                     </span>
                     <span className="text-amber-300 font-bold">
-                      {player.belongingTeamName || player.belongingTeam?.name
-                        ? `${player.belongingTeamName || player.belongingTeam?.name} (Open pool for all teams)`
+                      {getCustomOwnTeam(player.id) || player.belongingTeamName || player.belongingTeam?.name
+                        ? `${getCustomOwnTeam(player.id) || player.belongingTeamName || player.belongingTeam?.name} (Open pool for all teams)`
                         : 'Open Pool (Independent)'}
                     </span>
                   </div>

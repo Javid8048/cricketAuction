@@ -23,6 +23,7 @@ import { api } from '../../services/api';
 import { formatRupees } from '../../utils/currency';
 import { compressImageFile, formatBytes, CompressionResult } from '../../utils/imageCompressor';
 import { Modal } from '../common/Modal';
+import { getCustomOwnTeam, setCustomOwnTeam } from '../../utils/customTeams';
 
 interface PlayerEditModalProps {
   isOpen: boolean;
@@ -91,7 +92,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         basePrice: player.basePrice || 100,
         category: player.category || 'Local Talent',
         profileImage: player.profileImage || '',
-        belongingTeamName: player.belongingTeamName || player.belongingTeam?.name || '',
+        belongingTeamName: getCustomOwnTeam(player.id) || player.belongingTeamName || player.belongingTeam?.name || '',
         belongingTeamId: player.belongingTeamId || player.belongingTeam?.id || '',
         soldToTeamId: (player.status === 'SOLD' && (player.teamPlayer?.teamId || player.teamPlayer?.team?.id)) ? (player.teamPlayer?.teamId || player.teamPlayer?.team?.id || '') : '',
         soldPrice: existingSoldPrice >= 100 && existingSoldPrice <= 2500 ? existingSoldPrice : 100,
@@ -194,18 +195,25 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
 
     try {
       let matchedTeamId: string | null = null;
-      if (formData.belongingTeamName && formData.belongingTeamName.trim()) {
-        const trimmed = formData.belongingTeamName.trim().toLowerCase();
+      const rawTeamName = formData.belongingTeamName ? formData.belongingTeamName.trim() : '';
+      if (rawTeamName) {
+        const trimmed = rawTeamName.toLowerCase();
         const found = teams.find(
-          (t) => t.name.toLowerCase() === trimmed || t.shortName.toLowerCase() === trimmed
+          (t) => t.name.trim().toLowerCase() === trimmed || t.shortName.trim().toLowerCase() === trimmed
         );
         if (found) {
           matchedTeamId = found.id;
         }
       }
 
-      const effectiveBelongingTeamId = matchedTeamId || (formData.belongingTeamId && formData.belongingTeamId !== 'NONE' ? formData.belongingTeamId : 'NONE');
+      // Persist custom club name locally if not a tournament team
+      if (rawTeamName && !matchedTeamId) {
+        setCustomOwnTeam(player.id, rawTeamName);
+      } else {
+        setCustomOwnTeam(player.id, null);
+      }
 
+      // 1. Send strictly valid scalar and relation fields to avoid Prisma 500 error
       const payload: any = {
         name: formData.name.trim(),
         country: formData.country || 'India',
@@ -219,10 +227,6 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         basePrice: Number(formData.basePrice) > 0 ? Number(formData.basePrice) : 100,
         category: formData.category || 'Local Talent',
         profileImage: formData.profileImage || player.profileImage,
-        belongingTeamName: formData.belongingTeamName && formData.belongingTeamName.trim() ? formData.belongingTeamName.trim() : null,
-        belongingTeamId: effectiveBelongingTeamId,
-        soldToTeamId: formData.soldToTeamId ? formData.soldToTeamId : 'NONE',
-        soldPrice: formData.soldToTeamId ? Number(formData.soldPrice) : null,
         matches: Number(formData.matches) || 0,
         runs: Number(formData.runs) || 0,
         battingAvg: Number(formData.battingAvg) || 0,
@@ -232,24 +236,31 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         highestScore: Number(formData.highestScore) || 0,
       };
 
-      let updated;
-      try {
-        updated = await api.updatePlayer(player.id, payload);
-      } catch (err: any) {
-        // Fallback retry if deployed backend rejects belongingTeamName as unknown argument
-        if (err.message && (err.message.includes('belongingTeamName') || err.message.includes('Unknown argument'))) {
-          const fallbackPayload = { ...payload };
-          delete fallbackPayload.belongingTeamName;
-          updated = await api.updatePlayer(player.id, fallbackPayload);
-        } else {
-          throw err;
+      // Connect or disconnect belonging team relation
+      if (matchedTeamId) {
+        payload.belongingTeam = { connect: { id: matchedTeamId } };
+      } else if (player.belongingTeam || player.belongingTeamId) {
+        payload.belongingTeam = { disconnect: true };
+      }
+
+      const updated = await api.updatePlayer(player.id, payload);
+
+      // 2. Handle Squad Sold To assignment via dedicated endpoint
+      if (formData.soldToTeamId && formData.soldToTeamId !== (player.teamPlayer?.teamId || player.teamPlayer?.team?.id)) {
+        try {
+          await api.manuallyAssignPlayer(player.id, formData.soldToTeamId, Number(formData.soldPrice));
+        } catch (assignErr: any) {
+          console.warn('Squad assignment note:', assignErr.message);
         }
       }
 
+      const matchedTeamObj = matchedTeamId ? teams.find((t) => t.id === matchedTeamId) : null;
       const finalPlayer = {
         ...player,
         ...updated,
-        belongingTeamName: formData.belongingTeamName ? formData.belongingTeamName.trim() : null,
+        belongingTeam: matchedTeamObj || (rawTeamName && !matchedTeamId ? null : updated.belongingTeam),
+        belongingTeamName: rawTeamName || null,
+        belongingTeamId: matchedTeamId || null,
       };
 
       onSuccess(finalPlayer);

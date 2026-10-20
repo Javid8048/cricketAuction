@@ -2,6 +2,7 @@ import React from 'react';
 import { Globe, Award, Shield, Zap, Target, Flame, Info, Star, MapPin, Calendar, RefreshCw } from 'lucide-react';
 import { Player } from '../../types';
 import { formatRupees } from '../../utils/currency';
+import { getCustomOwnTeam } from '../../utils/customTeams';
 import { useAuctionStore } from '../../store/auction.store';
 import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../services/api';
@@ -29,8 +30,10 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, onViewProfile })
         : null)
     : null;
 
+  const customOwnTeam = player ? getCustomOwnTeam(player.id) : null;
   const ownTeamName = player
-    ? player.belongingTeamName ||
+    ? customOwnTeam ||
+      player.belongingTeamName ||
       ownTeam?.name ||
       player.belongingTeam?.name ||
       (player.belongingTeamId ? state?.teams?.find((t) => t.id === player.belongingTeamId)?.name : null)

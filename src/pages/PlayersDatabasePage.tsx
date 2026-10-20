@@ -32,6 +32,7 @@ import {
 import { api } from '../services/api';
 import { Player, Team } from '../types';
 import { formatRupees } from '../utils/currency';
+import { getCustomOwnTeam } from '../utils/customTeams';
 import { compressImageFile, formatBytes, CompressionResult } from '../utils/imageCompressor';
 import { exportToCsv } from '../utils/csvExport';
 import { PlayerProfileModal } from '../components/player/PlayerProfileModal';
@@ -548,7 +549,7 @@ export const PlayersDatabasePage: React.FC<PlayersDatabasePageProps> = ({
                     {/* Team Affiliation and Squad Status Badges */}
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {(() => {
-                        const pOwnTeamName = p.belongingTeamName || p.belongingTeam?.name || (p.belongingTeamId ? teams.find(t => t.id === p.belongingTeamId)?.name : null);
+                        const pOwnTeamName = getCustomOwnTeam(p.id) || p.belongingTeamName || p.belongingTeam?.name || (p.belongingTeamId ? teams.find(t => t.id === p.belongingTeamId)?.name : null);
                         const pOwnTeam = p.belongingTeam || (p.belongingTeamId ? teams.find(t => t.id === p.belongingTeamId) : null);
                         return pOwnTeamName ? (
                           <span

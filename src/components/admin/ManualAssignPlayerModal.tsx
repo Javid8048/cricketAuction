@@ -18,6 +18,7 @@ import { api } from '../../services/api';
 import { useAuctionStore } from '../../store/auction.store';
 import { Player, Team } from '../../types';
 import { formatRupees } from '../../utils/currency';
+import { getCustomOwnTeam } from '../../utils/customTeams';
 
 interface ManualAssignPlayerModalProps {
   isOpen: boolean;
@@ -291,7 +292,7 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
                     <span>
                       Own Team:{' '}
                       <strong className="text-amber-300">
-                        {selectedPlayer.belongingTeamName || selectedPlayer.belongingTeam?.name || (selectedPlayer.belongingTeamId ? teams.find(t => t.id === selectedPlayer.belongingTeamId)?.name : null) || 'Independent / Open Pool'}
+                        {getCustomOwnTeam(selectedPlayer.id) || selectedPlayer.belongingTeamName || selectedPlayer.belongingTeam?.name || (selectedPlayer.belongingTeamId ? teams.find(t => t.id === selectedPlayer.belongingTeamId)?.name : null) || 'Independent / Open Pool'}
                       </strong>
                     </span>
                   </div>
