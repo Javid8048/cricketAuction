@@ -21,11 +21,11 @@ export const DbConnectionGatekeeper: React.FC<DbConnectionGatekeeperProps> = ({
     let pollInterval: any = null;
     let countdownInterval: any = null;
 
-    // Check immediately
+    // Check connection with 5s timeout
     const checkConnection = async () => {
       try {
-        const isHealthy = await api.checkHealth(2500);
-        if (!isMounted) return;
+        const isHealthy = await api.checkHealth(5000);
+        if (!isMounted) return false;
 
         if (isHealthy) {
           setStatus('CONNECTED');
@@ -56,17 +56,28 @@ export const DbConnectionGatekeeper: React.FC<DbConnectionGatekeeperProps> = ({
       // Start countdown timer if not connected immediately
       countdownInterval = setInterval(() => {
         if (!isMounted) return;
-        setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
+        setSecondsLeft((prev) => {
+          if (prev <= 1) {
+            // Once countdown completes, auto-connect to landing page so the user is never stuck
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (pollInterval) clearInterval(pollInterval);
+            setTimeout(() => {
+              if (isMounted) onConnected();
+            }, 300);
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
 
-      // Start regular polling every 2.5s
+      // Start regular polling every 3s
       pollInterval = setInterval(async () => {
         if (!isMounted) return;
         const ok = await checkConnection();
         if (ok && pollInterval) {
           clearInterval(pollInterval);
         }
-      }, 2500);
+      }, 3000);
     });
 
     return () => {
@@ -79,7 +90,7 @@ export const DbConnectionGatekeeper: React.FC<DbConnectionGatekeeperProps> = ({
   const handleManualRetry = async () => {
     setStatus('CHECKING');
     setSecondsLeft(45);
-    const isHealthy = await api.checkHealth(3500);
+    const isHealthy = await api.checkHealth(5000);
     if (isHealthy) {
       setStatus('CONNECTED');
       setTimeout(() => onConnected(), 600);
@@ -98,23 +109,15 @@ export const DbConnectionGatekeeper: React.FC<DbConnectionGatekeeperProps> = ({
         {status === 'CONNECTED' ? (
           <div className="py-6 animate-in zoom-in-95">
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto mb-4 text-emerald-400">
-              <CheckCircle2 className="w-9 h-9" />
+              <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h2 className="text-xl font-black text-white font-display mb-1">
-              Database Connected!
-            </h2>
-            <p className="text-xs text-emerald-400 font-medium font-mono">
-              Connection established • Proceeding to application...
-            </p>
+            <h2 className="text-xl font-black text-white font-display mb-1">Database Connected</h2>
+            <p className="text-xs text-slate-400 font-mono">Launching Live Arena...</p>
           </div>
         ) : (
-          <div>
-            {/* Animated Server & DB Graphic */}
-            <div className="relative w-20 h-20 mx-auto mb-5 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-2xl bg-amber-500/15 border border-amber-500/30 animate-ping opacity-40" />
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 via-slate-800 to-cyan-500/20 border border-amber-500/40 flex items-center justify-center shadow-lg relative">
-                <Database className="w-8 h-8 text-amber-400 animate-pulse" />
-              </div>
+          <div className="py-2">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 text-amber-400">
+              <Database className="w-8 h-8 animate-pulse" />
             </div>
 
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-mono font-bold uppercase tracking-wider mb-3">
