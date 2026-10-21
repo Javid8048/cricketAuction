@@ -69,10 +69,14 @@ export const SoldUnsoldBanner: React.FC = () => {
               SOLD TO
             </div>
             <div className="text-xl sm:text-2xl font-black text-white font-display flex items-center justify-center gap-2">
-              <span
-                className="w-3.5 h-3.5 rounded-full"
-                style={{ backgroundColor: winningTeam.primaryColor }}
-              />
+              {winningTeam.logoUrl ? (
+                <img src={winningTeam.logoUrl} alt={winningTeam.name} className="w-6 h-6 rounded-full object-cover border border-white/30" />
+              ) : (
+                <span
+                  className="w-3.5 h-3.5 rounded-full"
+                  style={{ backgroundColor: winningTeam.primaryColor }}
+                />
+              )}
               <span>{winningTeam.name}</span>
             </div>
 

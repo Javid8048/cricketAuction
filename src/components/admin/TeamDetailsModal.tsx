@@ -109,10 +109,14 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
         <div className="px-5 sm:px-7 py-4 bg-[#141a2c] border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3.5 min-w-0">
             <div
-              className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl text-white shadow-xl border-2 border-white/20 shrink-0"
+              className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl text-white shadow-xl border-2 border-white/20 shrink-0 overflow-hidden relative"
               style={{ backgroundColor: team.primaryColor }}
             >
-              {team.logoText || team.shortName || team.name.slice(0, 2).toUpperCase()}
+              {team.logoUrl ? (
+                <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover" />
+              ) : (
+                team.logoText || team.shortName || team.name.slice(0, 2).toUpperCase()
+              )}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

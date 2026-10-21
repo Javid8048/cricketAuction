@@ -401,10 +401,14 @@ export const TeamsDatabasePage: React.FC = () => {
                   <div className="flex items-start justify-between gap-2 mb-4">
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center font-black font-display text-white text-lg shadow-md group-hover:scale-105 transition-transform"
+                        className="w-12 h-12 rounded-xl flex items-center justify-center font-black font-display text-white text-lg shadow-md group-hover:scale-105 transition-transform overflow-hidden relative"
                         style={{ backgroundColor: t.primaryColor }}
                       >
-                        {t.shortName}
+                        {t.logoUrl ? (
+                          <img src={t.logoUrl} alt={t.name} className="w-full h-full object-cover" />
+                        ) : (
+                          t.shortName
+                        )}
                       </div>
                       <div>
                         <h3 className="font-bold text-white text-base leading-tight group-hover:text-amber-400 transition-colors">

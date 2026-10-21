@@ -64,10 +64,14 @@ export const TeamDashboardPage: React.FC = () => {
       >
         <div className="flex items-center gap-4">
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center font-black text-xl text-white shadow-xl border border-white/20"
+            className="w-16 h-16 rounded-2xl flex items-center justify-center font-black text-xl text-white shadow-xl border border-white/20 overflow-hidden relative"
             style={{ backgroundColor: team.primaryColor }}
           >
-            {team.logoText}
+            {team.logoUrl ? (
+              <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover" />
+            ) : (
+              team.logoText
+            )}
           </div>
           <div>
             <div className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, X, Phone, MapPin, User, Coins, Users, Key, Lock, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Shield, X, Phone, MapPin, User, Coins, Users, Key, Lock, Eye, EyeOff, Trash2, Camera, RotateCcw } from 'lucide-react';
+import { compressImageFile } from '../../utils/imageCompressor';
 import { Team } from '../../types';
 import { api } from '../../services/api';
 import { useAuctionStore } from '../../store/auction.store';
@@ -26,6 +27,7 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
     secondaryColor: '#1E40AF',
     totalPurse: 15000,
     maxSquadSize: 12,
+    logoUrl: '',
   });
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -33,6 +35,28 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressing(true);
+    try {
+      const result = await compressImageFile(file, {
+        maxWidth: 500,
+        maxHeight: 500,
+        quality: 0.8,
+        format: 'image/jpeg',
+      });
+      setFormData((prev) => ({ ...prev, logoUrl: result.dataUrl }));
+    } catch (err: any) {
+      showToast(err.message || 'Failed to process image', 'error');
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
 
   const handleDelete = async () => {
     if (!teamToEdit) return;
@@ -67,6 +91,7 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
         secondaryColor: teamToEdit.secondaryColor || '#1E40AF',
         totalPurse: teamToEdit.totalPurse !== undefined ? teamToEdit.totalPurse : 15000,
         maxSquadSize: teamToEdit.maxSquadSize !== undefined ? teamToEdit.maxSquadSize : 12,
+        logoUrl: teamToEdit.logoUrl || '',
       });
     } else {
       setFormData({
@@ -81,6 +106,7 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
         secondaryColor: '#1E40AF',
         totalPurse: 15000,
         maxSquadSize: 12,
+        logoUrl: '',
       });
     }
     setTouched({});
@@ -244,6 +270,69 @@ export const TeamFormModal: React.FC<TeamFormModalProps> = ({ isOpen, onClose, t
               )}
             </div>
           </div>
+
+          {/* Team Emblem / Logo Image */}
+          <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-300">
+                Team Icon / Logo Image <span className="text-slate-500 font-normal">(Optional)</span>
+              </label>
+              {formData.logoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, logoUrl: '' }))}
+                  className="text-[10px] text-rose-400 hover:text-rose-300 flex items-center gap-1 font-semibold"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Remove Image
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Live Preview Avatar */}
+              <div
+                className="w-14 h-14 rounded-xl flex items-center justify-center font-black text-white text-base shadow-md border border-white/20 shrink-0 overflow-hidden relative"
+                style={{ backgroundColor: formData.primaryColor }}
+              >
+                {formData.logoUrl ? (
+                  <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <span>{formData.shortName || 'LOGO'}</span>
+                )}
+              </div>
+
+              <div className="flex-1 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition-colors">
+                    <Camera className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Upload Image / Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  {isCompressing && (
+                    <span className="text-[11px] text-amber-400 animate-pulse">Compressing...</span>
+                  )}
+                </div>
+
+                <input
+                  type="text"
+                  value={formData.logoUrl}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, logoUrl: e.target.value }))}
+                  placeholder="Or paste image URL (https://...)"
+                  className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono text-[11px]"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              If no image is added, the team badge will display the short name with brand colors.
+            </p>
+          </div>
+
 
           {/* Owner Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

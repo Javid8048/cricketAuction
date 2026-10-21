@@ -63,6 +63,7 @@ export interface Team {
   primaryColor: string;
   secondaryColor: string;
   logoText: string;
+  logoUrl?: string | null;
   totalPurse: number;
   remainingPurse: number;
   maxSquadSize: number;

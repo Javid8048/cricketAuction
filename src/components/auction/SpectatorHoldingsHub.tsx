@@ -221,10 +221,14 @@ export const SpectatorHoldingsHub: React.FC<SpectatorHoldingsHubProps> = ({
                       <div className="flex items-start justify-between gap-3 mb-4">
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-11 h-11 rounded-xl flex items-center justify-center font-black font-display text-sm text-white shadow-md shrink-0 border border-white/10"
+                            className="w-11 h-11 rounded-xl flex items-center justify-center font-black font-display text-sm text-white shadow-md shrink-0 border border-white/10 overflow-hidden relative"
                             style={{ backgroundColor: team.primaryColor || '#3B82F6' }}
                           >
-                            {team.shortName || team.name.slice(0, 3).toUpperCase()}
+                            {team.logoUrl ? (
+                              <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover" />
+                            ) : (
+                              team.shortName || team.name.slice(0, 3).toUpperCase()
+                            )}
                           </div>
                           <div>
                             <h4 className="font-bold text-white text-sm sm:text-base leading-tight">
