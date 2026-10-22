@@ -60,7 +60,7 @@ class ApiService {
   }
 
   // Health check for Render / backend server
-  async checkHealth(timeoutMs = 4000): Promise<boolean> {
+  async checkHealth(timeoutMs = 10000): Promise<boolean> {
     try {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeoutMs);
