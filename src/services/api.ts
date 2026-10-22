@@ -29,7 +29,7 @@ export function getBackendUrl(): string {
   }
 
   // 4. Production remote default (Render)
-  return 'https://cricketauctionbackend-ypoh.onrender.com';
+  return 'https://cricketauctionbackend-1.onrender.com';
 }
 
 export function getApiBaseUrl(): string {
