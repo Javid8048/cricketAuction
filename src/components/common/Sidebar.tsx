@@ -56,29 +56,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { user, logout, isAuthenticated } = useAuthStore();
   const { state, isConnected, soundMuted, toggleSound } = useAuctionStore();
 
-  // If players list is not yet loaded in auction store, fetch immediately so menu count matches
-  React.useEffect(() => {
-    if (!state?.players || state.players.length === 0) {
-      api
-        .getPlayers()
-        .then((players) => {
-          if (Array.isArray(players) && players.length > 0) {
-            useAuctionStore.getState().setPlayers(players);
-          }
-        })
-        .catch(console.error);
-    }
-  }, [state?.players]);
-
-  const auctionStatus = state?.auction?.status || 'IDLE';
-  const playersCount = state?.players?.length || 0;
-  const teamsCount = state?.teams?.length || 0;
-
+  // Fetch players and teams immediately if not yet loaded in auction store so menu count matches
   React.useEffect(() => {
     if (!state?.players || state.players.length === 0) {
       useAuctionStore.getState().refreshPlayers();
     }
-  }, [state?.players]);
+    if (!state?.teams || state.teams.length === 0) {
+      useAuctionStore.getState().refreshTeams();
+    }
+  }, [state?.players, state?.teams]);
+
+  const auctionStatus = state?.auction?.status || 'IDLE';
+  const playersCount = state?.players?.length || 0;
+  const teamsCount = state?.teams?.length || 0;
 
   const handleNavClick = (tab: string) => {
     onSelectTab(tab);

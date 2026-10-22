@@ -61,6 +61,7 @@ export const TeamsDatabasePage: React.FC = () => {
       .getTeams()
       .then((data) => {
         setTeams(data);
+        useAuctionStore.getState().setTeams(data);
         if (selectedTeamForDetails) {
           const fresh = data.find((t: Team) => t.id === selectedTeamForDetails.id);
           if (fresh) setSelectedTeamForDetails(fresh);

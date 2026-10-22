@@ -39,6 +39,8 @@ interface AuctionStore {
   initState: () => Promise<void>;
   setPlayers: (players: Player[]) => void;
   refreshPlayers: () => Promise<void>;
+  setTeams: (teams: Team[]) => void;
+  refreshTeams: () => Promise<void>;
   initSocketListeners: () => void;
   placeBid: (amount?: number, teamId?: string) => Promise<void>;
   dismissOverlay: () => void;
@@ -183,16 +185,20 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
 
   initState: async () => {
     try {
-      const [data, playersList] = await Promise.all([
+      const [data, playersList, teamsList] = await Promise.all([
         api.getCurrentAuction(),
         api.getPlayers().catch(() => []),
+        api.getTeams().catch(() => []),
       ]);
       const mergedPlayers =
         data.players && data.players.length > 0 ? data.players : playersList || [];
+      const mergedTeams =
+        data.teams && data.teams.length > 0 ? data.teams : teamsList || [];
       set({
         state: {
           ...data,
           players: mergedPlayers,
+          teams: mergedTeams,
         },
         secondsLeft: data.auction?.secondsLeft ?? 10,
         isConnected: true,
@@ -259,6 +265,33 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       }
     } catch (e) {
       console.error('Failed to refresh players', e);
+    }
+  },
+
+  setTeams: (teams: Team[]) => {
+    set((s) => ({
+      state: s.state
+        ? { ...s.state, teams }
+        : ({
+            auction: { id: '', name: '', status: 'IDLE', currentRound: 1, defaultTimerSec: 10 },
+            activePlayer: null,
+            highestBidTeam: null,
+            currentBid: 0,
+            recentBids: [],
+            teams,
+            players: [],
+          } as AuctionState),
+    }));
+  },
+
+  refreshTeams: async () => {
+    try {
+      const teams = await api.getTeams();
+      if (Array.isArray(teams)) {
+        get().setTeams(teams);
+      }
+    } catch (e) {
+      console.error('Failed to refresh teams', e);
     }
   },
 

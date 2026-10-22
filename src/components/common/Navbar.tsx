@@ -54,27 +54,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showServerModal, setShowServerModal] = useState(false);
   const [serverUrlInput, setServerUrlInput] = useState(getBackendUrl());
 
-  React.useEffect(() => {
-    if (!state?.players || state.players.length === 0) {
-      api
-        .getPlayers()
-        .then((players) => {
-          if (Array.isArray(players) && players.length > 0) {
-            useAuctionStore.getState().setPlayers(players);
-          }
-        })
-        .catch(console.error);
-    }
-  }, [state?.players]);
-
   const auctionStatus = state?.auction?.status || 'IDLE';
+  const playersCount = state?.players?.length || 0;
+  const teamsCount = state?.teams?.length || 0;
   const userTeam = Array.isArray(state?.teams) ? state.teams.find((t) => t.id === user?.teamId) : null;
 
   React.useEffect(() => {
     if (!state?.players || state.players.length === 0) {
       useAuctionStore.getState().refreshPlayers();
     }
-  }, [state?.players]);
+    if (!state?.teams || state.teams.length === 0) {
+      useAuctionStore.getState().refreshTeams();
+    }
+  }, [state?.players, state?.teams]);
 
   return (
     <header className={`sticky top-0 z-40 bg-[#0c101a]/95 backdrop-blur-md border-b border-slate-800/80 ${layoutMode === 'sidebar' ? 'lg:hidden' : ''}`}>
@@ -500,7 +492,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <UsersIcon className="w-4 h-4" />
+              <div className="relative">
+                <UsersIcon className="w-4 h-4" />
+                {playersCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 px-1 py-0.2 rounded-full bg-amber-500 text-slate-950 font-bold text-[8px] leading-tight font-mono">
+                    {playersCount}
+                  </span>
+                )}
+              </div>
               <span>Players</span>
             </button>
 
@@ -512,8 +511,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Shield className="w-4 h-4" />
-              <span>Teams</span>
+              <div className="relative">
+                <Shield className="w-4 h-4" />
+                {teamsCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 px-1 py-0.2 rounded-full bg-amber-500 text-slate-950 font-bold text-[8px] leading-tight font-mono">
+                    {teamsCount}
+                  </span>
+                )}
+              </div>
+              <span>Teams ({teamsCount})</span>
             </button>
 
             {user?.role === 'ADMIN' && (
