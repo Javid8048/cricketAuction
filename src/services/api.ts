@@ -30,7 +30,7 @@ export function getBackendUrl(): string {
   }
 
   // 4. Production remote default (Render)
-  return 'https://athletic-humanity-tone-world.trycloudflare.com';
+  return 'https://enclosed-walks-flight-hong.trycloudflare.com';
 }
 
 export function getApiBaseUrl(): string {
