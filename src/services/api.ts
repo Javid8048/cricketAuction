@@ -30,7 +30,7 @@ export function getBackendUrl(): string {
   }
 
   // 4. Production remote default (Render)
-  return 'https://enclosed-walks-flight-hong.trycloudflare.com';
+  return 'https://cricketauctionbackend-8hbh.onrender.com';
 }
 
 export function getApiBaseUrl(): string {
