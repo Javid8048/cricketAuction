@@ -3,6 +3,7 @@ import { INITIAL_PLAYERS, INITIAL_TEAMS } from '../data/initial-data';
 export function getBackendUrl(): string {
   if (typeof window !== 'undefined') {
     // 1. User manual override from UI settings modal
+    const stale = localStorage.getItem('caa_backend_url'); if (stale && stale.indexOf('onrender.com') !== -1) { localStorage.removeItem('caa_backend_url'); }
     const saved = sessionStorage.getItem('caa_backend_url') || localStorage.getItem('caa_backend_url');
     if (saved) return saved.trim().replace(/\/+$/, '');
 
@@ -29,7 +30,7 @@ export function getBackendUrl(): string {
   }
 
   // 4. Production remote default (Render)
-  return 'https://cricketauctionbackend-1.onrender.com';
+  return 'https://athletic-humanity-tone-world.trycloudflare.com';
 }
 
 export function getApiBaseUrl(): string {
