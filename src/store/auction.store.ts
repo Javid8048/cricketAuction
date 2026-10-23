@@ -315,15 +315,27 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         } as AuctionState);
       }
 
+      let mergedPlayers = currentPlayers;
+      if (Array.isArray(incoming.players) && incoming.players.length > 0) {
+        const currentMap = new Map((currentPlayers || []).map((p: any) => [p.id, p]));
+        mergedPlayers = incoming.players.map((p: any) => {
+          const existing = currentMap.get(p.id);
+          return existing && !p.profileImage ? { ...existing, ...p, profileImage: existing.profileImage } : p;
+        });
+      }
+
+      let activePlayer = incoming.activePlayer !== undefined ? incoming.activePlayer : (currentState ? currentState.activePlayer : null);
+      if (activePlayer && !activePlayer.profileImage && currentState && currentState.activePlayer && currentState.activePlayer.id === activePlayer.id) {
+        activePlayer = { ...activePlayer, profileImage: currentState.activePlayer.profileImage };
+      }
+
       return {
         ...currentState,
         ...incoming,
+        activePlayer,
         auction: incoming.auction || currentState?.auction || { id: '', name: '', status: 'IDLE', currentRound: 1, defaultTimerSec: 10 },
         teams: Array.isArray(incoming.teams) ? incoming.teams : currentTeams,
-        players:
-          Array.isArray(incoming.players) && incoming.players.length > 0
-            ? incoming.players
-            : currentPlayers,
+        players: mergedPlayers,
       };
     };
 
@@ -356,9 +368,15 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     socket.on('auction:players_updated', (data: { players?: Player[] } | Player[]) => {
       const playersList = Array.isArray(data) ? data : data?.players;
       if (Array.isArray(playersList) && playersList.length > 0) {
-        set((s) => ({
-          state: s.state ? { ...s.state, players: playersList } : null,
-        }));
+        set((s) => {
+          if (!s.state) return s;
+          const currentMap = new Map((s.state.players || []).map((p: any) => [p.id, p]));
+          const merged = playersList.map((p: any) => {
+            const existing = currentMap.get(p.id);
+            return existing && !p.profileImage ? { ...existing, ...p, profileImage: existing.profileImage } : p;
+          });
+          return { state: { ...s.state, players: merged } };
+        });
       }
     });
 
