@@ -16,10 +16,12 @@ import {
   Sparkles,
   ExternalLink,
   Shield,
+  FileText,
 } from 'lucide-react';
 import { Team, Player } from '../../types';
 import { formatRupees } from '../../utils/currency';
 import { exportToCsv } from '../../utils/csvExport';
+import { exportTeamCardPdf } from '../../utils/teamPdfExport';
 
 interface TeamDetailsModalProps {
   isOpen: boolean;
@@ -142,6 +144,16 @@ export const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
 
           {/* Header Action Buttons */}
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => exportTeamCardPdf(team)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 font-bold text-xs transition-colors shadow-sm"
+              title="Download Official Team Card (PDF)"
+            >
+              <FileText className="w-3.5 h-3.5 text-rose-400" />
+              <span>Download Team PDF</span>
+            </button>
+
             <button
               type="button"
               onClick={handleExportPlayersCsv}

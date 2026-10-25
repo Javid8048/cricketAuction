@@ -3,7 +3,8 @@ import { useAuthStore } from '../store/auth.store';
 import { api } from '../services/api';
 import { Team, Player } from '../types';
 import { formatRupees } from '../utils/currency';
-import { Users, Globe, Trophy, DollarSign, Award, Shield } from 'lucide-react';
+import { Users, Globe, Trophy, DollarSign, Award, Shield, FileText } from 'lucide-react';
+import { exportTeamCardPdf } from '../utils/teamPdfExport';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
 export const TeamDashboardPage: React.FC = () => {
@@ -83,14 +84,25 @@ export const TeamDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-center sm:text-right">
-          <div className="text-xs text-slate-400 font-mono">REMAINING PURSE</div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-amber-400">
-            {formatRupees(team.remainingPurse)}
+        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4">
+          <div className="text-center sm:text-right">
+            <div className="text-xs text-slate-400 font-mono">REMAINING PURSE</div>
+            <div className="text-2xl sm:text-3xl font-black font-mono text-amber-400">
+              {formatRupees(team.remainingPurse)}
+            </div>
+            <div className="text-[11px] text-slate-500 font-mono">
+              Spent: {formatRupees(team.totalPurse - team.remainingPurse)} / {formatRupees(team.totalPurse)}
+            </div>
           </div>
-          <div className="text-[11px] text-slate-500 font-mono">
-            Spent: {formatRupees(team.totalPurse - team.remainingPurse)} / {formatRupees(team.totalPurse)}
-          </div>
+          <button
+            type="button"
+            onClick={() => exportTeamCardPdf(team)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition-all active:scale-95 shrink-0"
+            title="Download Official Squad Roster (PDF)"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Download Squad PDF</span>
+          </button>
         </div>
       </div>
 

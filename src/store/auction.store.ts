@@ -43,6 +43,7 @@ interface AuctionStore {
   refreshTeams: () => Promise<void>;
   initSocketListeners: () => void;
   placeBid: (amount?: number, teamId?: string) => Promise<void>;
+  updateCurrentBid: (amount: number, teamId?: string | null) => Promise<void>;
   dismissOverlay: () => void;
   toggleSound: () => void;
   showToast: (text: string, type?: 'success' | 'error' | 'info') => void;
@@ -121,6 +122,36 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         set({ toastMessage: null });
       }
     }, 4000);
+  },
+
+  updateCurrentBid: async (amount: number, teamId?: string | null) => {
+    const { isStandaloneMode, state } = get();
+    if (!isStandaloneMode) {
+      try {
+        await api.updateCurrentBid(amount, teamId);
+        get().showToast(`Bid updated to ${formatRupees(amount)}`, 'success');
+      } catch (err: any) {
+        get().showToast(err.message, 'error');
+        throw err;
+      }
+      return;
+    }
+
+    if (!state || !state.activePlayer) return;
+    const targetTeam = teamId ? state.teams.find((t) => t.id === teamId) : state.highestBidTeam;
+    const updatedState = {
+      ...state,
+      currentBid: amount,
+      highestBidTeam: targetTeam || state.highestBidTeam,
+      auction: {
+        ...state.auction,
+        activePlayerPrice: amount,
+        highestBidTeamId: targetTeam ? targetTeam.id : state.auction.highestBidTeamId,
+      },
+      minIncrement: getMinBidIncrement(amount),
+    };
+    set({ state: updatedState });
+    get().showToast(`Bid updated to ${formatRupees(amount)}`, 'success');
   },
 
   dismissOverlay: () => {
@@ -610,13 +641,13 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       if (amount !== undefined && amount !== null && !isNaN(Number(amount))) {
         targetAmount = Number(amount);
       } else if (!state.highestBidTeam) {
-        targetAmount = Math.max(100, activeP.basePrice || 100);
+        targetAmount = Math.max(0, activeP.basePrice || 0);
       } else {
         targetAmount = state.currentBid + getMinBidIncrement(state.currentBid);
       }
 
-      if (targetAmount < 100) {
-        throw new Error('Bid price must be greater than or equal to ₹100.');
+      if (targetAmount < 0 || targetAmount > 15000) {
+        throw new Error('Bid price must be between ₹0 and ₹15,000.');
       }
 
       if (state.highestBidTeam && targetAmount <= state.currentBid) {
@@ -946,8 +977,8 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
   },
 
   manuallyAssignPlayer: async (playerId: string, teamId: string, amount: number) => {
-    if (isNaN(amount) || amount <= 100 || amount >= 2500) {
-      const err = new Error('Price must be greater than ₹100 and less than ₹2,500.');
+    if (isNaN(amount) || amount < 0 || amount > 15000) {
+      const err = new Error('Price must be between ₹0 and ₹15,000.');
       get().showToast(err.message, 'error');
       throw err;
     }

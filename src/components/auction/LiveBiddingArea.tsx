@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Timer, ArrowUpRight, ShieldAlert, Sparkles, Check, AlertCircle, Zap, Gavel } from 'lucide-react';
+import { Timer, ArrowUpRight, ShieldAlert, Sparkles, Check, AlertCircle, Zap, Gavel, SlidersHorizontal } from 'lucide-react';
 import { useAuctionStore } from '../../store/auction.store';
 import { useAuthStore } from '../../store/auth.store';
 import { formatRupees } from '../../utils/currency';
@@ -35,9 +35,9 @@ export const LiveBiddingArea: React.FC = () => {
   const isHighestBidder = userTeam && highestBidTeam?.id === userTeam.id;
   const isOverseasLimitReached = Boolean(activePlayer?.isOverseas && userTeam && (userTeam.overseasCount || 0) >= userTeam.maxOverseas);
 
-  // Minimum allowed custom bid: 100 when awaiting opening bid, or next increment above current bid
+  // Minimum allowed custom bid: opening bid or next increment above current bid
   const minAllowedCustomBid = !highestBidTeam
-    ? Math.max(100, activePlayer?.basePrice || 100)
+    ? Math.max(0, activePlayer?.basePrice || 0)
     : currentBid + 100;
 
   // Dynamic tournament increment amounts (+ ₹100, + ₹200, + ₹500, + ₹1,000)
@@ -79,13 +79,13 @@ export const LiveBiddingArea: React.FC = () => {
     e.preventDefault();
     setBiddingError(null);
     const parsed = parseInt(customBidInput, 10);
-    if (isNaN(parsed) || parsed < 100) {
-      setBiddingError('Bid price must be greater than or equal to ₹100.');
+    if (isNaN(parsed) || parsed < 0 || parsed > 15000) {
+      setBiddingError('Bid price must be between ₹0 and ₹15,000.');
       return;
     }
 
     if (!highestBidTeam) {
-      const minOpen = Math.max(100, activePlayer?.basePrice || 100);
+      const minOpen = Math.max(0, activePlayer?.basePrice || 0);
       if (parsed < minOpen) {
         setBiddingError(`Opening bid must be at least ${formatRupees(minOpen)}.`);
         return;
@@ -319,11 +319,11 @@ export const LiveBiddingArea: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsManualBidOpen(true)}
-                    className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
-                    title="Open Manual Bid Pop-up to place bid on behalf of any team"
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 text-xs font-extrabold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+                    title="Update any bid amount from ₹0 to ₹15,000 or place bid for team"
                   >
-                    <Gavel className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Manual Bid (Pop-up)</span>
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Update Bid (₹0 – ₹15k)</span>
                   </button>
                   <button
                     type="button"

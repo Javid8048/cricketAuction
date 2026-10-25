@@ -95,7 +95,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         belongingTeamName: getCustomOwnTeam(player.id) || player.belongingTeamId || player.belongingTeamName || player.belongingTeam?.name || '',
         belongingTeamId: getCustomOwnTeam(player.id) || player.belongingTeamId || player.belongingTeamName || player.belongingTeam?.name || '',
         soldToTeamId: (player.status === 'SOLD' && (player.teamPlayer?.teamId || player.teamPlayer?.team?.id)) ? (player.teamPlayer?.teamId || player.teamPlayer?.team?.id || '') : '',
-        soldPrice: existingSoldPrice >= 100 && existingSoldPrice <= 2500 ? existingSoldPrice : 100,
+        soldPrice: existingSoldPrice >= 0 && existingSoldPrice <= 15000 ? existingSoldPrice : 100,
         matches: player.matches || 0,
         runs: player.runs || 0,
         battingAvg: player.battingAvg || 0,
@@ -168,8 +168,8 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
 
     if (formData.soldToTeamId) {
       const price = Number(formData.soldPrice);
-      if (isNaN(price) || price < 100 || price > 2500) {
-        setErrorMsg('Final Transfer / Sold Price must be between ₹100 and ₹2,500.');
+      if (isNaN(price) || price < 0 || price > 15000) {
+        setErrorMsg('Final Transfer / Sold Price must be between ₹0 and ₹15,000.');
         return;
       }
 
@@ -683,8 +683,8 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  min="100"
-                  max="2500"
+                  min="0"
+                  max="15000"
                   step="50"
                   value={formData.soldPrice}
                   onChange={(e) => setFormData({ ...formData, soldPrice: Number(e.target.value) })}
@@ -693,7 +693,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                 />
 
                 <div className="flex items-center gap-1">
-                  {[100, 200, 500, 1000, 2000, 2500].map((preset) => (
+                  {[0, 100, 200, 500, 1000, 2500, 5000, 10000, 15000].map((preset) => (
                     <button
                       key={preset}
                       type="button"

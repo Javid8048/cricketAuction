@@ -195,6 +195,15 @@ class ApiService {
     return this.handleResponse<any>(res);
   }
 
+  async updateCurrentBid(amount: number, teamId?: string | null) {
+    const res = await fetch(`${getApiBaseUrl()}/auction/bid/update`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ amount, teamId }),
+    });
+    return this.handleResponse<any>(res);
+  }
+
   async startAuction() {
     const res = await fetch(`${getApiBaseUrl()}/auction/start`, {
       method: 'POST',

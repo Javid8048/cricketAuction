@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { Team } from '../types';
 import { formatRupees } from '../utils/currency';
 import { exportToCsv } from '../utils/csvExport';
+import { exportTeamCardPdf, exportAllTeamsPdf } from '../utils/teamPdfExport';
 import {
   Users,
   Globe,
@@ -22,6 +23,7 @@ import {
   ExternalLink,
   ChevronRight,
   FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { useAuctionStore } from '../store/auction.store';
@@ -322,6 +324,17 @@ export const TeamsDatabasePage: React.FC = () => {
             <span>Download All Rosters</span>
           </button>
 
+          {/* Download All Teams PDF */}
+          <button
+            type="button"
+            onClick={() => exportAllTeamsPdf(teams)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-200 font-bold text-xs transition-colors shadow-sm"
+            title="Download All Teams Roster PDF"
+          >
+            <FileText className="w-3.5 h-3.5 text-rose-400" />
+            <span>Download All Teams PDF</span>
+          </button>
+
           {isAdmin && (
             <>
               {teams.length > 0 && (
@@ -432,6 +445,16 @@ export const TeamsDatabasePage: React.FC = () => {
                       className="flex items-center gap-1 shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      {/* Quick Download Team Card PDF */}
+                      <button
+                        type="button"
+                        onClick={() => exportTeamCardPdf(t)}
+                        className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                        title="Download Team Card (PDF)"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-rose-400" />
+                      </button>
+
                       {/* Quick Download Team Players CSV */}
                       <button
                         type="button"
@@ -559,6 +582,16 @@ export const TeamsDatabasePage: React.FC = () => {
                   >
                     <Users className="w-3 h-3 text-amber-400" />
                     <span>View Roster</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => exportTeamCardPdf(t)}
+                    className="py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                    title="Download Team Card PDF"
+                  >
+                    <FileText className="w-3 h-3 text-rose-400" />
+                    <span>PDF</span>
                   </button>
 
                   {isAdmin && (

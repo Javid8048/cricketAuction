@@ -48,7 +48,7 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const getDefaultPrice = (p?: Player | null) => {
-    if (p?.basePrice && p.basePrice >= 100 && p.basePrice <= 2500) {
+    if (p?.basePrice !== undefined && p.basePrice !== null && p.basePrice >= 0 && p.basePrice <= 15000) {
       return p.basePrice;
     }
     return 100;
@@ -136,12 +136,12 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
       setErrorMsg('Please enter a valid price.');
       return;
     }
-    if (finalPrice < 100) {
-      setErrorMsg('Price must be at least ₹100.');
+    if (finalPrice < 0) {
+      setErrorMsg('Price cannot be negative.');
       return;
     }
-    if (finalPrice > 2500) {
-      setErrorMsg('Price cannot exceed ₹2,500.');
+    if (finalPrice > 15000) {
+      setErrorMsg('Price cannot exceed ₹15,000.');
       return;
     }
     if (isPurseInsufficient) {
@@ -181,19 +181,21 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
   };
 
   const quickAmounts = [
+    { label: '₹0', value: 0 },
     { label: '₹100', value: 100 },
-    ...(selectedPlayer?.basePrice &&
-    selectedPlayer.basePrice >= 100 &&
-    selectedPlayer.basePrice <= 2500 &&
-    selectedPlayer.basePrice !== 100
+    ...(selectedPlayer?.basePrice !== undefined &&
+    selectedPlayer.basePrice >= 0 &&
+    selectedPlayer.basePrice <= 15000 &&
+    selectedPlayer.basePrice !== 100 &&
+    selectedPlayer.basePrice !== 0
       ? [{ label: `Base (₹${selectedPlayer.basePrice})`, value: selectedPlayer.basePrice }]
       : []),
-    { label: '₹200', value: 200 },
     { label: '₹500', value: 500 },
     { label: '₹1,000', value: 1000 },
-    { label: '₹1,500', value: 1500 },
-    { label: '₹2,000', value: 2000 },
     { label: '₹2,500', value: 2500 },
+    { label: '₹5,000', value: 5000 },
+    { label: '₹10,000', value: 10000 },
+    { label: '₹15,000', value: 15000 },
   ];
 
   // Filter players when switching player
@@ -445,7 +447,7 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
               <span>2. Final Transfer / Sold Price (₹)</span>
             </label>
             <span className="text-[10px] text-amber-300 font-mono">
-              Limit: ₹100 – ₹2,500
+              Limit: ₹0 – ₹15,000
             </span>
           </div>
 
@@ -453,8 +455,8 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
             <span className="absolute left-3.5 top-2.5 text-sm font-mono font-bold text-slate-400">₹</span>
             <input
               type="number"
-              min="100"
-              max="2500"
+              min="0"
+              max="15000"
               step="50"
               value={amount}
               onChange={(e) => {
@@ -563,8 +565,8 @@ export const ManualAssignPlayerModal: React.FC<ManualAssignPlayerModalProps> = (
               isSquadFull ||
               isOverseasLimitReached ||
               amount === '' ||
-              numericAmount < 100 ||
-              numericAmount > 2500
+              numericAmount < 0 ||
+              numericAmount > 15000
             }
             className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all transform active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
           >
